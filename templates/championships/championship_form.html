@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block content %}
+<div class="container container-form">
+  <header class="page-head">
+    <a class="back-link" href="{% if championship %}{% url 'championships:manage' championship.id %}{% else %}{% url 'championships:organizer_list' %}{% endif %}"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"></use></svg>{% if championship %}{{ championship.name }}{% else %}Your championships{% endif %}</a>
+    <p class="eyebrow">Soccer championship</p>
+    <h1>{{ heading }}</h1>
+    <p class="lead">Set the format and schedule once. We generate the fixtures, keeps the standings and fills the bracket as results come in.</p>
+  </header>
+
+  <form method="post" enctype="multipart/form-data" class="card form-card">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="callout callout-error mb-3" role="alert"><svg class="icon" aria-hidden="true"><use href="#i-alert"></use></svg><div><strong>This configuration cannot run yet</strong>{{ form.non_field_errors }}</div></div>
+    {% endif %}
+    {% if form.locked %}
+      <div class="callout callout-warning mb-3"><svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg><span>Fixtures exist, so the tournament structure is locked. Clear the fixtures on the dashboard to change it.</span></div>
+    {% endif %}
+    {% for section in form.sections %}
+      <fieldset class="form-section">
+        <legend class="form-section-head">
+          <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-{{ section.icon }}"></use></svg></span>
+          <span><h2>{{ section.title }}</h2><p>{{ section.blurb }}</p></span>
+        </legend>
+        <div class="form-grid">
+          {% for field in section.fields %}
+            {% if field.widget_type == "textarea" or field.widget_type == "clearablefile" %}
+              {% include "partials/field.html" with span=True %}
+            {% elif field.widget_type == "checkbox" %}
+              <div class="field span-2{% if field.errors %} has-error{% endif %}">
+                <label class="check-field">{{ field }} <span>{{ field.label }}</span></label>
+                {% if field.help_text %}<div class="help">{{ field.help_text }}</div>{% endif %}
+                {{ field.errors }}
+              </div>
+            {% else %}
+              {% include "partials/field.html" with span=False %}
+            {% endif %}
+          {% endfor %}
+        </div>
+      </fieldset>
+    {% endfor %}
+    <div class="form-actions">
+      <a class="btn btn-ghost" href="{% if championship %}{% url 'championships:manage' championship.id %}{% else %}{% url 'championships:organizer_list' %}{% endif %}">Cancel</a>
+      <button class="btn btn-primary btn-lg" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>Save championship</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

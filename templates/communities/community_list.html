@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Communities{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header class="page-head" data-reveal>
+    <div class="page-head-row">
+      <div>
+        <p class="eyebrow">Communities</p>
+        <h1>Find your people</h1>
+        <p class="lead">Every community has its own leagues, tournaments, events and All-Star games.</p>
+      </div>
+      <a class="btn btn-glass" href="{% url 'communities:create' %}">
+        <svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>
+        Start a community
+      </a>
+    </div>
+  </header>
+
+  {% if mine %}
+    <section class="card mb-3" id="mine" aria-labelledby="mine-title">
+      <div class="card-title"><h2 id="mine-title">Communities you run</h2></div>
+      <ul class="owner-list">
+        {% for community in mine %}
+          <li class="owner-row">
+            <strong>{{ community.name }}</strong>
+            <a class="btn btn-primary btn-sm" href="{% url 'communities:manage' community.slug %}"><svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg>Open dashboard</a>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  {% if communities %}
+    <div class="grid grid-cards">
+      {% for community in communities %}
+        <article class="league-card theme-community" data-tilt data-reveal style="--i: {{ forloop.counter0 }}">
+          <div class="league-card-top">
+            <span class="cat-icon" aria-hidden="true"><svg class="icon"><use href="#i-community"></use></svg></span>
+          </div>
+          <div>
+            <h2><a href="{% url 'communities:detail' community.slug %}">{{ community.name }}</a></h2>
+            <p class="muted">{{ community.tagline|default:"A community on this site" }}</p>
+            <p class="muted">{{ community.league_count }} league{{ community.league_count|pluralize }} · {{ community.tournament_count }} tournament{{ community.tournament_count|pluralize }} · {{ community.all_star_count }} All-Star game{{ community.all_star_count|pluralize }}</p>
+          </div>
+          <div class="event-foot">
+            <span class="organizer"><span class="avatar" aria-hidden="true">{{ community.organizer.display_name|first }}</span><span>{{ community.organizer.display_name }}</span></span>
+            <span class="link-arrow" aria-hidden="true">Visit <svg class="icon icon-arrow"><use href="#i-arrow"></use></svg></span>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty">
+      <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-community"></use></svg></div>
+      <h2>No communities yet.</h2>
+      <p>Bring your group together: one page for its leagues, tournaments and games.</p>
+      <a class="btn btn-primary" href="{% url 'communities:create' %}">Start a community</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

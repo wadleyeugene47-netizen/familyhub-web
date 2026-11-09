@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block content %}
+<div class="container container-form">
+  <header class="page-head">
+    <a class="back-link" href="{% if game %}{% url 'allstars:manage' game.pk %}{% else %}{% url 'allstars:list' %}{% endif %}"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"></use></svg>{% if game %}{{ game.title }}{% else %}All-Star games{% endif %}</a>
+    <p class="eyebrow">All-Star game</p>
+    <h1>{{ heading }}</h1>
+    <p class="lead">Set the date and how many teams. Players sign up, you rate them, and the site builds fair teams.</p>
+  </header>
+  <form method="post" class="card form-card">
+    {% csrf_token %}
+    {% include "partials/form_fields.html" %}
+    <div class="form-actions">
+      <a class="btn btn-ghost" href="{% if game %}{% url 'allstars:manage' game.pk %}{% else %}{% url 'allstars:list' %}{% endif %}">Cancel</a>
+      <button class="btn btn-primary btn-lg" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>Save game</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

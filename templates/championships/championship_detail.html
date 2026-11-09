@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+{% load tz gatherplay %}
+
+{% block title %}{{ championship.name }}{% endblock %}
+{% block description %}{{ championship.description|default:"Fixtures, results, standings and bracket."|truncatechars:150 }}{% endblock %}
+
+{% block content %}
+{% timezone championship.timezone %}
+<div class="container" data-live-url="{% url 'championships:live' championship.id %}" data-live-version="{{ live_version }}">
+  <div class="detail-hero cover-art theme-sports cup-hero">
+    {% if championship.cover_image %}
+      <img src="{{ championship.cover_image.url }}" alt="">
+    {% else %}
+      <img src="{{ "sports"|theme_photo }}" alt="">
+    {% endif %}
+    <div class="detail-hero-shade"></div>
+    <div class="detail-hero-copy">
+      <a class="back-link" href="{% url 'championships:list' %}"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"></use></svg>All championships</a>
+      <div class="cluster">
+        <span class="chip"><svg class="icon" aria-hidden="true"><use href="#i-sports"></use></svg>{{ championship.get_format_display }}</span>
+        <span class="chip">{{ championship.team_count }} teams</span>
+        <span class="badge status-{{ championship.status }}">{{ championship.get_status_display }}</span>
+      </div>
+      <h1>{{ championship.name }}</h1>
+      <span class="organizer"><span class="avatar" aria-hidden="true">{{ championship.organizer.display_name|first }}</span><span>{{ championship.organizer.display_name }}</span></span>
+    </div>
+  </div>
+
+  {% if championship.status == "draft" %}
+    <div class="callout callout-warning mt-5">
+      <svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>
+      <span>Draft preview. Only you and administrators can see this page until the championship is published.</span>
+    </div>
+  {% endif %}
+
+  <div class="live-pill" data-live-pill hidden role="status">
+    <span class="live-dot" aria-hidden="true"></span>
+    <span>New results are in.</span>
+    <a class="btn btn-primary btn-sm" href="{{ request.path }}">Refresh</a>
+  </div>
+
+  <div class="cup-summary mt-5" data-reveal>
+    {% if champion %}
+      <div class="stat stat-success">
+        <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-trophy"></use></svg></span>
+        <strong>{{ champion.name }}</strong>
+        <span>Champion</span>
+      </div>
+    {% endif %}
+    <div class="stat">
+      <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-calendar"></use></svg></span>
+      <strong>{% if championship.first_kickoff_at %}{{ championship.first_kickoff_at|date:"j M Y" }}{% else %}TBC{% endif %}</strong>
+      <span>First kickoff ({{ championship.timezone }})</span>
+    </div>
+    <div class="stat stat-cyan">
+      <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-whistle"></use></svg></span>
+      <strong>{{ completed_count }} / {{ matches|length }}</strong>
+      <span>matches played</span>
+    </div>
+    {% if championship.entry_event %}
+      <div class="stat stat-warning">
+        <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-ticket"></use></svg></span>
+        <strong>{% if championship.entry_fee %}{{ championship.entry_fee }} {{ championship.entry_event.currency }}{% else %}Free{% endif %}</strong>
+        <span>entry fee</span>
+      </div>
+    {% endif %}
+  </div>
+
+  <nav class="cup-tabs mt-5" aria-label="Championship sections" data-tabs>
+    <div class="cup-tabs-track" role="tablist">
+      <a role="tab" href="#overview" data-tab="overview">Overview</a>
+      <a role="tab" href="#teams" data-tab="teams">Teams</a>
+      {% if championship.has_groups %}
+        <a role="tab" href="#groups" data-tab="groups">Groups</a>
+        <a role="tab" href="#standings" data-tab="standings">Standings</a>
+      {% endif %}
+      <a role="tab" href="#fixtures" data-tab="fixtures">Fixtures &amp; results</a>
+      {% if championship.has_knockout %}<a role="tab" href="#bracket" data-tab="bracket">Bracket</a>{% endif %}
+      <a role="tab" href="#rules" data-tab="rules">Rules</a>
+      <a role="tab" href="#location" data-tab="location">Location</a>
+    </div>
+  </nav>
+
+  <div class="cup-panels">
+    <section class="cup-panel" id="overview" role="tabpanel" aria-labelledby="overview-heading" data-panel="overview">
+      <h2 id="overview-heading" class="sr-only">Overview</h2>
+      <div class="detail-layout cup-layout">
+        <div class="stack">
+          <section class="card" aria-labelledby="next-heading" data-reveal>
+            <div class="card-title"><h3 id="next-heading">Next matches</h3></div>
+            {% if next_matches %}
+              <ol class="match-list">
+                {% for match in next_matches %}{% include "championships/partials/match_card.html" %}{% endfor %}
+              </ol>
+            {% else %}
+              <div class="empty empty-sm">
+                <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg></div>
+                <p>{% if champion %}The championship is over. Congratulations, {{ champion.name }}!{% else %}No upcoming matches are scheduled.{% endif %}</p>
+              </div>
+            {% endif %}
+          </section>
+          {% if recent_results %}
+            <section class="card" aria-labelledby="recent-heading" data-reveal>
+              <div class="card-title"><h3 id="recent-heading">Latest results</h3></div>
+              <ol class="match-list">
+                {% for match in recent_results %}{% include "championships/partials/match_card.html" %}{% endfor %}
+              </ol>
+            </section>
+          {% endif %}
+          {% if championship.description %}
+            <section class="card" aria-labelledby="about-heading" data-reveal>
+              <h3 id="about-heading">About</h3>
+              <div class="prose">{{ championship.description|linebreaks }}</div>
+            </section>
+          {% endif %}
+        </div>
+        <aside class="detail-aside" aria-label="Championship details">
+          <section class="card card-sm">
+            <h3 class="label mb-3">At a glance</h3>
+            <ul class="info-list">
+              <li><span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-grid"></use></svg></span><span><strong>Format</strong><span>{{ championship.get_format_display }}{% if championship.has_groups %} · {{ championship.group_count }} group{{ championship.group_count|pluralize }}{% endif %}{% if championship.format == "groups_knockout" %} · top {{ championship.advance_per_group }} advance{% endif %}</span></span></li>
+              <li><span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-clock"></use></svg></span><span><strong>Match length</strong><span>{{ championship.match_duration_minutes }} minutes</span></span></li>
+              {% if championship.location %}
+                <li><span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-pin"></use></svg></span><span><strong>{{ championship.location.name|default:championship.location.city }}</strong><span>{{ championship.location.address_line }}, {{ championship.location.city }}</span></span></li>
+              {% endif %}
+              {% if championship.registration_deadline %}
+                <li><span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-calendar"></use></svg></span><span><strong>Registration closes</strong><span>{{ championship.registration_deadline|date:"D j M Y, H:i" }}</span></span></li>
+              {% endif %}
+            </ul>
+            {% if championship.entry_event %}
+              <a class="btn btn-primary btn-block" href="{% url 'events:detail' championship.entry_event_id %}">
+                <svg class="icon" aria-hidden="true"><use href="#i-ticket"></use></svg>
+                Register your team
+              </a>
+            {% endif %}
+          </section>
+          {% if top_scorers %}
+            <section class="card card-sm">
+              <h3 class="label mb-3">Top scorers</h3>
+              <ol class="scorer-list">
+                {% for scorer in top_scorers %}
+                  <li><span><strong>{{ scorer.player }}</strong> <span class="subtle">{{ scorer.team.name }}</span></span><span class="scorer-goals">{{ scorer.goals }}</span></li>
+                {% endfor %}
+              </ol>
+            </section>
+          {% endif %}
+          {% if can_manage %}
+            <a class="btn btn-glass btn-block" href="{% url 'championships:manage' championship.id %}">
+              <svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg>
+              Manage championship
+            </a>
+          {% endif %}
+        </aside>
+      </div>
+    </section>
+
+    <section class="cup-panel" id="teams" role="tabpanel" aria-labelledby="teams-heading" data-panel="teams">
+      <div class="card" data-reveal>
+        <div class="card-title"><h2 id="teams-heading">Teams</h2><span class="subtle">{{ team_records|length }} of {{ championship.team_count }} registered</span></div>
+        {% if team_records %}
+          <div class="table-wrap table-scroll" role="region" aria-label="Team statistics" tabindex="0">
+            <table class="table-standings table-cup">
+              <caption class="sr-only">Every team's record across the whole championship. Penalty shoot-outs are not counted as goals.</caption>
+              <thead><tr><th scope="col" class="col-team">Team</th>{% if championship.has_groups %}<th scope="col" class="col-optional">Group</th>{% endif %}<th scope="col"><abbr title="Matches played">MP</abbr></th><th scope="col"><abbr title="Wins">W</abbr></th><th scope="col"><abbr title="Draws">D</abbr></th><th scope="col"><abbr title="Losses">L</abbr></th><th scope="col" class="col-optional"><abbr title="Goals for">GF</abbr></th><th scope="col" class="col-optional"><abbr title="Goals against">GA</abbr></th><th scope="col"><abbr title="Goal difference">GD</abbr></th><th scope="col">Status</th></tr></thead>
+              <tbody>
+                {% for row in team_records %}
+                  <tr>
+                    <th scope="row" class="col-team"><span class="avatar team-avatar" aria-hidden="true">{{ row.team.short_name|default:row.team.name|first }}</span><span class="team-name">{{ row.team.name }}</span></th>
+                    {% if championship.has_groups %}<td class="col-optional">{{ row.team.group.name|default:"—" }}</td>{% endif %}
+                    <td>{{ row.played }}</td><td>{{ row.won }}</td><td>{{ row.drawn }}</td><td>{{ row.lost }}</td>
+                    <td class="col-optional">{{ row.goals_for }}</td><td class="col-optional">{{ row.goals_against }}</td>
+                    <td>{% if row.goal_difference > 0 %}+{% endif %}{{ row.goal_difference }}</td>
+                    <td>{% if champion and champion.pk == row.team.pk %}<span class="badge status-completed">Champion</span>{% elif row.status == "eliminated" %}<span class="badge status-cancelled">Eliminated</span>{% else %}<span class="badge status-active">In contention</span>{% endif %}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty empty-sm"><div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-users"></use></svg></div><p>Teams have not been announced yet.</p></div>
+        {% endif %}
+        {% if championship.entry_requirements %}
+          <h3 class="label mt-5 mb-3">Team entry requirements</h3>
+          <div class="muted">{{ championship.entry_requirements|linebreaks }}</div>
+        {% endif %}
+      </div>
+    </section>
+
+    {% if championship.has_groups %}
+      <section class="cup-panel" id="groups" role="tabpanel" aria-labelledby="groups-heading" data-panel="groups">
+        <h2 id="groups-heading" class="sr-only">Groups</h2>
+        <div class="group-grid">
+          {% for table in tables %}
+            <article class="card card-sm group-card" data-reveal style="--i: {{ forloop.counter0 }}">
+              <div class="card-title"><h3>{{ table.group.name }}</h3><span class="subtle">{{ table.rows|length }} teams</span></div>
+              <ul class="team-pills">
+                {% for row in table.rows %}<li><span class="avatar" aria-hidden="true">{{ row.team.short_name|default:row.team.name|first }}</span>{{ row.team.name }}</li>{% endfor %}
+              </ul>
+              <ol class="match-list mt-4">
+                {% for match in matches %}{% if match.group_id == table.group.pk %}{% include "championships/partials/match_card.html" %}{% endif %}{% endfor %}
+              </ol>
+            </article>
+          {% empty %}
+            <div class="empty empty-sm"><div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-grid"></use></svg></div><p>Groups are drawn when the teams are confirmed.</p></div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="cup-panel" id="standings" role="tabpanel" aria-labelledby="standings-heading" data-panel="standings">
+        <div class="section-head"><div><h2 id="standings-heading">Standings</h2><p class="lead">Recalculated from saved results every time a score is entered or corrected.</p></div></div>
+        <div class="standings-grid">
+          {% for table in tables %}
+            {% include "championships/partials/standings_table.html" with show_status=True %}
+          {% endfor %}
+        </div>
+        {% if championship.format == "groups_knockout" %}
+          <ul class="qual-legend mt-4" aria-label="Legend">
+            <li class="qual qual-qualified"><span class="qual-dot" aria-hidden="true"></span>Qualified for the knockout stage</li>
+            <li class="qual qual-pending"><span class="qual-dot" aria-hidden="true"></span>Not yet decided</li>
+            <li class="qual qual-tie"><span class="qual-dot" aria-hidden="true"></span>Level on every tie-breaker; awaiting drawing of lots</li>
+            <li class="qual qual-eliminated"><span class="qual-dot" aria-hidden="true"></span>Eliminated</li>
+          </ul>
+        {% endif %}
+        <details class="card card-sm mt-4 tiebreak-card">
+          <summary><svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>How ties are resolved</summary>
+          <p class="muted mt-3">A win earns {{ championship.points_for_win }} point{{ championship.points_for_win|pluralize }}, a draw {{ championship.points_for_draw }}, a loss {{ championship.points_for_loss }}. Goal difference is goals for minus goals against. Teams level on points are separated in this order:</p>
+          <ol class="tiebreak-steps">{% for step in tie_breaker_steps %}<li>{{ step }}</li>{% endfor %}</ol>
+          <p class="subtle">Qualification is only confirmed once every group match is completed or cancelled, unless no remaining result can change it (shown as clinched).</p>
+        </details>
+      </section>
+    {% endif %}
+
+    <section class="cup-panel" id="fixtures" role="tabpanel" aria-labelledby="fixtures-heading" data-panel="fixtures">
+      <div class="card" data-reveal>
+        <div class="card-title"><h2 id="fixtures-heading">Fixtures and results</h2><span class="subtle">Times in {{ championship.timezone }}</span></div>
+        {% if matches %}
+          {% regroup matches by local_day as days %}
+          {% for day in days %}
+            <h3 class="day-heading">{% if day.grouper %}{{ day.grouper|date:"l j F Y" }}{% else %}Date to be confirmed{% endif %}</h3>
+            <ol class="match-list">
+              {% for match in day.list %}{% include "championships/partials/match_card.html" with show_incidents=True %}{% endfor %}
+            </ol>
+          {% endfor %}
+        {% else %}
+          <div class="empty empty-sm"><div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg></div><p>Fixtures have not been published yet.</p></div>
+        {% endif %}
+      </div>
+    </section>
+
+    {% if championship.has_knockout %}
+      <section class="cup-panel" id="bracket" role="tabpanel" aria-labelledby="bracket-heading" data-panel="bracket">
+        <div class="card" data-reveal>
+          <div class="card-title"><h2 id="bracket-heading">Knockout bracket</h2><span class="subtle">{{ championship.get_knockout_tie_rule_display }} if level</span></div>
+          {% include "championships/partials/bracket.html" %}
+        </div>
+      </section>
+    {% endif %}
+
+    <section class="cup-panel" id="rules" role="tabpanel" aria-labelledby="rules-heading" data-panel="rules">
+      <div class="card" data-reveal>
+        <h2 id="rules-heading">Tournament rules</h2>
+        <ul class="check-list">
+          <li><span>Points</span><strong>Win {{ championship.points_for_win }} · Draw {{ championship.points_for_draw }} · Loss {{ championship.points_for_loss }}</strong></li>
+          <li><span>Match duration</span><strong>{{ championship.match_duration_minutes }} minutes</strong></li>
+          {% if championship.has_groups %}<li><span>Group meetings</span><strong>{% if championship.group_legs == 2 %}Home and away{% else %}Once{% endif %}</strong></li>{% endif %}
+          {% if championship.format == "groups_knockout" %}<li><span>Advancement</span><strong>Top {{ championship.advance_per_group }} of each group</strong></li>{% endif %}
+          {% if championship.has_knockout %}<li><span>Level knockout matches</span><strong>{{ championship.get_knockout_tie_rule_display }}</strong></li>{% endif %}
+          {% if championship.has_knockout %}<li><span>Third-place match</span><strong>{{ championship.third_place_match|yesno:"Yes,No" }}</strong></li>{% endif %}
+        </ul>
+        {% if championship.has_groups %}
+          <h3 class="label mt-5 mb-3">Tie-breakers</h3>
+          <ol class="tiebreak-steps">{% for step in tie_breaker_steps %}<li>{{ step }}</li>{% endfor %}</ol>
+        {% endif %}
+        {% if championship.advancement_notes %}<h3 class="label mt-5 mb-3">Advancement</h3><div class="muted">{{ championship.advancement_notes|linebreaks }}</div>{% endif %}
+        {% if championship.rules %}<h3 class="label mt-5 mb-3">Rules</h3><div class="muted">{{ championship.rules|linebreaks }}</div>{% endif %}
+      </div>
+    </section>
+
+    <section class="cup-panel" id="location" role="tabpanel" aria-labelledby="location-heading" data-panel="location">
+      <div class="card" data-reveal>
+        <div class="card-title">
+          <h2 id="location-heading">Location and fields</h2>
+          {% if directions_url %}
+            <a class="btn btn-glass btn-sm" href="{{ directions_url }}" target="_blank" rel="noopener noreferrer">Open directions <svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg><span class="sr-only">(opens in a new tab)</span></a>
+          {% endif %}
+        </div>
+        {% if championship.location %}
+          <ul class="info-list">
+            <li><span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-pin"></use></svg></span><span><strong>{{ championship.location.name|default:championship.location.city }}</strong><span>{{ championship.location.address_line }}, {{ championship.location.city }}{% if championship.location.region %}, {{ championship.location.region }}{% endif %}{% if championship.location.postal_code %} {{ championship.location.postal_code }}{% endif %}, {{ championship.location.country_code }}</span></span></li>
+            <li><span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-flag"></use></svg></span><span><strong>Fields</strong><span>{{ championship.fields|join:", " }}</span></span></li>
+          </ul>
+          {% if map_embed_url %}
+            <div class="map-frame"><iframe title="Map showing {{ championship.location.name|default:championship.location.city }}" src="{{ map_embed_url }}" width="100%" height="320" loading="lazy" referrerpolicy="no-referrer"></iframe></div>
+            <p class="subtle mt-2">Map data © OpenStreetMap contributors.</p>
+          {% else %}
+            <div class="map-empty"><svg class="icon" aria-hidden="true"><use href="#i-map"></use></svg><p>Map preview unavailable because venue coordinates have not been added.</p></div>
+          {% endif %}
+        {% else %}
+          <div class="map-empty"><svg class="icon" aria-hidden="true"><use href="#i-map"></use></svg><p>The venue will be announced soon.</p></div>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+</div>
+{% endtimezone %}
+{% endblock %}

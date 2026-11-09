@@ -1,0 +1,33 @@
+{% load gatherplay %}
+{% with theme=event.category|event_theme image=event.images.all|first %}
+<article class="event-card theme-{{ theme }}" data-tilt data-reveal style="--i: {{ forloop.counter0|default:0 }}">
+  <div class="cover-art">
+    {% if image %}<img src="{{ image.image.url }}" alt="{{ image.alt_text }}" loading="lazy" decoding="async">{% elif theme|theme_photo %}<img src="{{ theme|theme_photo }}" alt="" loading="lazy" decoding="async">{% endif %}
+    <svg class="icon cover-icon" aria-hidden="true"><use href="#i-{{ theme }}"></use></svg>
+    <div class="cover-shade"></div>
+    <div class="cover-top">
+      <span class="chip"><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>{{ event.starts_at|date:"M j" }}</span>
+      {% if event.is_free %}
+        <span class="chip chip-free">Free</span>
+      {% else %}
+        <span class="chip chip-price">{{ event.price }} {{ event.currency }}</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="event-body">
+    <span class="event-category">{{ event.category.name }}</span>
+    <h3 class="event-title"><a href="{% url 'events:detail' event.id %}">{{ event.title }}</a></h3>
+    <ul class="meta-list">
+      <li><svg class="icon" aria-hidden="true"><use href="#i-clock"></use></svg><span>{{ event.starts_at|date:"D, j M Y · H:i" }}</span></li>
+      <li><svg class="icon" aria-hidden="true"><use href="#i-pin"></use></svg><span>{% if event.location.name %}{{ event.location.name }}, {% endif %}{{ event.location.city }}</span></li>
+    </ul>
+    <div class="event-foot">
+      <span class="organizer">
+        <span class="avatar" aria-hidden="true">{{ event.organizer.display_name|first }}</span>
+        <span>{{ event.organizer.display_name }}</span>
+      </span>
+      <span class="link-arrow" aria-hidden="true">View <svg class="icon icon-arrow"><use href="#i-arrow"></use></svg></span>
+    </div>
+  </div>
+</article>
+{% endwith %}

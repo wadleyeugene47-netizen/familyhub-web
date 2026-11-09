@@ -1,0 +1,129 @@
+{% extends "hub/panel_base.html" %}
+
+{% block title %}Overview{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header class="page-head">
+    <div class="page-head-row">
+      <div>
+        <p class="eyebrow">Host panel</p>
+        <h1>Welcome back, {{ request.user.get_short_name|default:request.user.username }}</h1>
+        <p class="lead">Everything that needs you, in one place.</p>
+      </div>
+      <a class="btn btn-glass" href="{% url 'hub:phones' %}">
+        <svg class="icon" aria-hidden="true"><use href="#i-phone"></use></svg>
+        Invite by phone
+      </a>
+    </div>
+  </header>
+
+  <div class="stat-grid">
+    <a class="stat stat-link{% if host_counts.members %} stat-attention{% endif %}" href="{% url 'hub:members' %}">
+      <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-users"></use></svg></span>
+      <strong>{{ host_counts.members }}</strong>
+      <span>member{{ host_counts.members|pluralize }} waiting</span>
+    </a>
+    <a class="stat stat-link stat-cyan{% if host_counts.events %} stat-attention{% endif %}" href="{% url 'hub:event_review' %}">
+      <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-calendar"></use></svg></span>
+      <strong>{{ host_counts.events }}</strong>
+      <span>event{{ host_counts.events|pluralize }} to approve</span>
+    </a>
+    <a class="stat stat-link stat-success{% if host_counts.messages %} stat-attention{% endif %}" href="{% url 'hub:messages' %}">
+      <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-chat"></use></svg></span>
+      <strong>{{ host_counts.messages }}</strong>
+      <span>unread message{{ host_counts.messages|pluralize }}</span>
+    </a>
+    <div class="stat">
+      <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-community"></use></svg></span>
+      <strong>{{ member_count }}</strong>
+      <span>member{{ member_count|pluralize }} · {{ upcoming_count }} upcoming event{{ upcoming_count|pluralize }}</span>
+    </div>
+  </div>
+
+  <div class="panel-grid mt-6">
+    <section class="card" aria-labelledby="signups-title">
+      <div class="card-title">
+        <h2 id="signups-title">Waiting to join</h2>
+        <a href="{% url 'hub:members' %}">All members</a>
+      </div>
+      <ul class="owner-list">
+        {% for member in pending_members %}
+          {% include "hub/partials/member_row.html" with accept=True decline=True %}
+        {% empty %}
+          <li class="muted">Nobody is waiting.</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="card" aria-labelledby="chats-title">
+      <div class="card-title">
+        <h2 id="chats-title">Latest messages</h2>
+        <a href="{% url 'hub:messages' %}">Open inbox</a>
+      </div>
+      <ul class="owner-list">
+        {% for conversation in recent_conversations %}
+          <li class="owner-row">
+            <div>
+              <strong>{{ conversation.member.display_name }}</strong>
+              {% if conversation.unread %}<span class="badge status-pending">{{ conversation.unread }} new</span>{% endif %}
+              <p class="muted">{{ conversation.last_message_at|timesince }} ago</p>
+            </div>
+            <a class="btn btn-glass btn-sm" href="{% url 'hub:message_thread' conversation.member_id %}">Reply</a>
+          </li>
+        {% empty %}
+          <li class="muted">No messages yet. Members can write to you from their account menu.</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+
+  <section class="card mt-6" id="features" aria-labelledby="features-title">
+    <div class="card-title">
+      <h2 id="features-title">Features</h2>
+    </div>
+    <p class="muted">Built and ready. A feature that is off is hidden and blocked everywhere on the site.</p>
+    <ul class="owner-list">
+      {% for feature in features %}
+        <li class="owner-row">
+          <div>
+            <strong>{{ feature.name }}</strong>
+            <span class="badge status-{% if feature.enabled %}active{% else %}draft{% endif %}">{% if feature.enabled %}On{% else %}Off{% endif %}</span>
+            {% if feature.description %}<p class="muted">{{ feature.description }}</p>{% endif %}
+          </div>
+          <form method="post" action="{% url 'hub:toggle_feature' feature.key %}">
+            {% csrf_token %}
+            {% if feature.enabled %}
+              <button class="btn btn-ghost btn-sm" type="submit">Switch off</button>
+            {% else %}
+              <input type="hidden" name="enabled" value="on">
+              <button class="btn btn-primary btn-sm" type="submit">Switch on</button>
+            {% endif %}
+          </form>
+        </li>
+      {% empty %}
+        <li class="muted">No features registered yet.</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="card mt-6" aria-labelledby="lists-title">
+    <div class="card-title">
+      <h2 id="lists-title">Option lists</h2>
+    </div>
+    <p class="muted">The choices people see in forms. Add, rename, reorder or hide options.</p>
+    <ul class="owner-list">
+      {% for list in choice_lists %}
+        <li class="owner-row">
+          <div>
+            <strong>{{ list.name }}</strong>
+            <span class="muted">{{ list.option_count }} option{{ list.option_count|pluralize }}</span>
+            {% if list.description %}<p class="muted">{{ list.description }}</p>{% endif %}
+          </div>
+          <a class="btn btn-glass btn-sm" href="{% url 'hub:choice_list' list.key %}">Edit</a>
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}

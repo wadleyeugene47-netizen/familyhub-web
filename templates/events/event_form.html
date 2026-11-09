@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block content %}
+<div class="container container-form">
+  <header class="page-head">
+    <a class="back-link" href="{% url 'events:organizer_list' %}"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"></use></svg>Your events</a>
+    <p class="eyebrow">Organizer</p>
+    <h1>{{ heading }}</h1>
+    <p class="lead">Fields marked <span class="required-mark" aria-hidden="true">*</span><span class="sr-only">with an asterisk</span> are required. Save as a draft any time and publish when you're ready.</p>
+  </header>
+
+  <form method="post" class="card form-card" novalidate>
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+
+    <section class="form-section" aria-labelledby="sec-basics">
+      <div class="form-section-head">
+        <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-sparkle"></use></svg></span>
+        <div><h2 id="sec-basics">The basics</h2><p>What is it and who is it for?</p></div>
+      </div>
+      <div class="form-grid">
+        {% include "partials/field.html" with field=form.title span=True %}
+        {% include "partials/field.html" with field=form.category span=False %}
+        {% include "partials/field.html" with field=form.status span=False %}
+        {% include "partials/field.html" with field=form.community span=True %}
+        {% include "partials/field.html" with field=form.description span=True %}
+      </div>
+    </section>
+
+    <section class="form-section" aria-labelledby="sec-when">
+      <div class="form-section-head">
+        <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-calendar"></use></svg></span>
+        <div><h2 id="sec-when">Date and time</h2><p>Times are entered in the event's local timezone.</p></div>
+      </div>
+      <div class="form-grid">
+        {% include "partials/field.html" with field=form.starts_at span=False %}
+        {% include "partials/field.html" with field=form.ends_at span=False %}
+        {% include "partials/field.html" with field=form.timezone span=True %}
+      </div>
+    </section>
+
+    <section class="form-section" aria-labelledby="sec-where">
+      <div class="form-section-head">
+        <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-pin"></use></svg></span>
+        <div><h2 id="sec-where">Location</h2><p>Add coordinates to show a map on the event page.</p></div>
+      </div>
+      <div class="form-grid">
+        {% include "partials/field.html" with field=form.venue_name span=False %}
+        {% include "partials/field.html" with field=form.address_line span=False %}
+        {% include "partials/field.html" with field=form.city span=False %}
+        {% include "partials/field.html" with field=form.region span=False %}
+        {% include "partials/field.html" with field=form.postal_code span=False %}
+        {% include "partials/field.html" with field=form.country_code span=False %}
+        {% include "partials/field.html" with field=form.latitude span=False %}
+        {% include "partials/field.html" with field=form.longitude span=False %}
+      </div>
+    </section>
+
+    <section class="form-section" aria-labelledby="sec-tickets">
+      <div class="form-section-head">
+        <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-ticket"></use></svg></span>
+        <div><h2 id="sec-tickets">Tickets</h2><p>Set the price to 0 for a free event. Paid events need payment setup before publishing.</p></div>
+      </div>
+      <div class="form-grid">
+        {% include "partials/field.html" with field=form.capacity span=False %}
+        {% include "partials/field.html" with field=form.price span=False %}
+        {% include "partials/field.html" with field=form.currency span=False %}
+      </div>
+    </section>
+
+    <div class="form-actions">
+      <a class="btn btn-ghost" href="{% url 'events:organizer_list' %}">Cancel</a>
+      <button class="btn btn-primary btn-lg" type="submit">
+        <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+        Save event
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

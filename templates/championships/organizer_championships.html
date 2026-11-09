@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Your championships{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header class="page-head">
+    <div class="page-head-row">
+      <div>
+        <p class="eyebrow">Organizer</p>
+        <h1>Your championships</h1>
+        <p class="lead">Enter scores after each match. Standings, qualification and the bracket update on their own.</p>
+      </div>
+      <a class="btn btn-primary" href="{% url 'championships:create' %}"><svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>Create championship</a>
+    </div>
+  </header>
+
+  {% if championships %}
+    <ul class="row-list">
+      {% for championship in championships %}
+        <li class="row-item" data-reveal style="--i: {{ forloop.counter0 }}">
+          <div class="row-thumb cover-art theme-sports" aria-hidden="true"><svg class="icon cover-icon"><use href="#i-trophy"></use></svg></div>
+          <div class="row-main">
+            <h2><a href="{% url 'championships:manage' championship.id %}">{{ championship.name }}</a></h2>
+            <p>{{ championship.get_format_display }} · {{ championship.teams.all|length }} of {{ championship.team_count }} teams · {{ championship.matches.all|length }} matches</p>
+          </div>
+          <div class="row-side">
+            <span class="badge status-{{ championship.status }}">{{ championship.get_status_display }}</span>
+            <a class="btn btn-glass btn-sm" href="{% url 'championships:manage' championship.id %}"><svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg>Manage</a>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="empty">
+      <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-trophy"></use></svg></div>
+      <h2>You have not created a championship yet.</h2>
+      <p>Pick group stage, knockout, or both. Fixtures are generated for you once the teams are in.</p>
+      <a class="btn btn-primary" href="{% url 'championships:create' %}"><svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>Create your first championship</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

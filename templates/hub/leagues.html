@@ -1,0 +1,54 @@
+{% extends "hub/panel_base.html" %}
+
+{% block title %}Leagues{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header class="page-head">
+    <p class="eyebrow">Host panel</p>
+    <h1>Leagues</h1>
+    <p class="lead">Create a league, build the teams, type in the scores. The table updates by itself.</p>
+  </header>
+
+  <section class="card" aria-labelledby="leagues-title">
+    <div class="card-title"><h2 id="leagues-title">Your leagues</h2></div>
+    <ul class="owner-list">
+      {% for league in leagues %}
+        <li class="owner-row">
+          <div>
+            <strong>{{ league.name }}</strong>
+            <span class="badge status-{{ league.status }}">{{ league.get_status_display }}</span>
+            {% if league.waiting %}<span class="badge status-pending">{{ league.waiting }} want to play</span>{% endif %}
+            <p class="muted">{{ league.team_count }} team{{ league.team_count|pluralize }} · {{ league.played }} of {{ league.match_count }} game{{ league.match_count|pluralize }} played</p>
+          </div>
+          <div class="cluster">
+            {% if league.status == "active" or league.status == "completed" %}
+              <a class="btn btn-ghost btn-sm" href="{% url 'leagues:detail' league.pk %}">Member page</a>
+            {% endif %}
+            <a class="btn btn-primary btn-sm" href="{% url 'hub:league' league.pk %}"><svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg>Manage</a>
+          </div>
+        </li>
+      {% empty %}
+        <li class="muted">No leagues yet. Create your first one below.</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <form method="post" class="card form-card mt-6">
+    {% csrf_token %}
+    <div class="card-title"><h2>New league</h2></div>
+    {{ form.non_field_errors }}
+    <div class="form-grid">
+      {% include "partials/field.html" with field=form.name span=True %}
+      {% include "partials/field.html" with field=form.community span=True %}
+      {% include "partials/field.html" with field=form.starts_on %}
+      {% include "partials/field.html" with field=form.ends_on %}
+      {% include "partials/field.html" with field=form.description span=True %}
+      {% include "partials/field.html" with field=form.rules span=True %}
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>Create league</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

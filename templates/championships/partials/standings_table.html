@@ -1,0 +1,57 @@
+<div class="standings-card" data-reveal>
+  <div class="standings-head">
+    <h3>{{ table.group.name }}</h3>
+    {% if table.is_complete %}
+      <span class="badge status-completed">Group complete</span>
+    {% elif table.match_count %}
+      <span class="badge status-scheduled">{{ table.pending_count }} match{{ table.pending_count|pluralize:"es" }} to play</span>
+    {% endif %}
+  </div>
+  <div class="table-wrap table-scroll" role="region" aria-label="{{ table.group.name }} standings" tabindex="0">
+    <table class="table-standings table-cup">
+      <caption class="sr-only">{{ table.group.name }} standings, calculated from saved results</caption>
+      <thead>
+        <tr>
+          <th scope="col" class="col-team">Team</th>
+          <th scope="col"><abbr title="Matches played">MP</abbr></th>
+          <th scope="col"><abbr title="Wins">W</abbr></th>
+          <th scope="col"><abbr title="Draws">D</abbr></th>
+          <th scope="col"><abbr title="Losses">L</abbr></th>
+          <th scope="col" class="col-optional"><abbr title="Goals for">GF</abbr></th>
+          <th scope="col" class="col-optional"><abbr title="Goals against">GA</abbr></th>
+          <th scope="col"><abbr title="Goal difference">GD</abbr></th>
+          <th scope="col"><abbr title="Points">PTS</abbr></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in table.rows %}
+          <tr class="{% if row.status %}is-{{ row.status }}{% endif %}">
+            <th scope="row" class="col-team">
+              <span class="rank">{{ row.position }}</span>
+              <span class="team-name">{{ row.team.name }}</span>
+              {% if row.tied %}<span class="tie-mark" title="Level on every tie-breaker">=</span>{% endif %}
+              {% if row.status_label %}<span class="sr-only"> — {{ row.status_label }}</span>{% endif %}
+            </th>
+            <td>{{ row.played }}</td>
+            <td>{{ row.won }}</td>
+            <td>{{ row.drawn }}</td>
+            <td>{{ row.lost }}</td>
+            <td class="col-optional">{{ row.goals_for }}</td>
+            <td class="col-optional">{{ row.goals_against }}</td>
+            <td>{% if row.goal_difference > 0 %}+{% endif %}{{ row.goal_difference }}</td>
+            <td class="pts">{{ row.points }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if show_status %}
+    <ul class="qual-list" aria-label="{{ table.group.name }} qualification">
+      {% for row in table.rows %}
+        {% if row.status %}
+          <li class="qual qual-{{ row.status }}"><span class="qual-dot" aria-hidden="true"></span>{{ row.team.name }}: {{ row.status_label }}</li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+  {% endif %}
+</div>

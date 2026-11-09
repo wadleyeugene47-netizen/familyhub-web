@@ -1,0 +1,33 @@
+{% extends "hub/panel_base.html" %}
+
+{% block title %}{{ choice_list.name }}{% endblock %}
+
+{% block content %}
+<div class="container container-form">
+  <header class="page-head">
+    <p class="eyebrow">Option list</p>
+    <h1>{{ choice_list.name }}</h1>
+    {% if choice_list.description %}<p class="lead">{{ choice_list.description }}</p>{% endif %}
+  </header>
+  <form method="post" class="card form-card">
+    {% csrf_token %}
+    {{ formset.management_form }}
+    {{ formset.non_form_errors }}
+    <p class="muted">Untick "Shown" to hide an option without losing past answers. Leave a blank row empty to skip it.</p>
+    {% for form in formset %}
+      <fieldset class="option-row">
+        <legend class="sr-only">{% if form.instance.pk %}{{ form.instance.label }}{% else %}New option{% endif %}</legend>
+        {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+        {{ form.non_field_errors }}
+        <div class="form-grid">
+          {% for field in form.visible_fields %}{% include "partials/field.html" %}{% endfor %}
+        </div>
+      </fieldset>
+    {% endfor %}
+    <div class="form-actions">
+      <a class="btn btn-ghost" href="{% url 'hub:dashboard' %}">Cancel</a>
+      <button class="btn btn-primary" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>Save options</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

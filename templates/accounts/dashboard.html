@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% load gatherplay %}
+
+{% block title %}Your dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header class="page-head">
+    <div class="page-head-row">
+      <div>
+        <p class="eyebrow">Participant dashboard</p>
+        <h1>Hi, {{ request.user.get_short_name|default:request.user.username }}</h1>
+        <p class="lead">Signed in as {{ request.user.username }}.</p>
+      </div>
+      <div class="cluster">
+        {% if organizer_profile %}
+          <a class="btn btn-glass" href="{% url 'organizers:dashboard' %}">
+            <svg class="icon" aria-hidden="true"><use href="#i-chart"></use></svg>
+            Open organizer dashboard
+          </a>
+        {% else %}
+          <a class="btn btn-glass" href="{% url 'events:create' %}">
+            <svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>
+            Start organizing an event
+          </a>
+        {% endif %}
+        <a class="btn btn-primary" href="{% url 'events:list' %}">
+          Discover events
+          <svg class="icon icon-arrow" aria-hidden="true"><use href="#i-arrow"></use></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="stat-grid" data-reveal>
+    <div class="stat stat-success">
+      <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-check-circle"></use></svg></span>
+      <strong>{{ confirmed_count }}</strong>
+      <span>confirmed</span>
+    </div>
+    <div class="stat stat-warning">
+      <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-clock"></use></svg></span>
+      <strong>{{ pending_count }}</strong>
+      <span>awaiting payment</span>
+    </div>
+    <div class="stat stat-cyan">
+      <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-card"></use></svg></span>
+      <strong>{{ payments|length }}</strong>
+      <span>payment{{ payments|length|pluralize }}</span>
+    </div>
+  </div>
+
+  <div class="dash-layout mt-6">
+    {% if communities %}
+      <section class="card" aria-labelledby="my-community" data-reveal>
+        <div class="card-title"><h2 id="my-community">Your community</h2></div>
+        <ul class="owner-list">
+          {% for league in communities %}
+            <li class="owner-row">
+              <div>
+                <strong>{{ league.name }}</strong>
+                {% if league.membership %}
+                  <span class="badge status-active">{% if league.membership.role == "captain" %}Captain{% else %}Playing{% endif %} · {{ league.membership.team.name }}</span>
+                  {% if league.membership.role == "captain" and league.membership.team.captain_fee %}
+                    <p class="muted">You pay {{ league.membership.team.captain_fee }} {{ league.membership.team.fee_currency }} for the team · {% if league.membership.team.fee_paid %}Paid{% else %}Not paid yet{% endif %}</p>
+                  {% endif %}
+                {% elif league.asked_to_play %}
+                  <span class="badge status-pending">You asked to play</span>
+                {% else %}
+                  <span class="badge">Supporter</span>
+                {% endif %}
+                <p class="muted">Standings, teams and the league chat.</p>
+              </div>
+              <div class="cluster">
+                {% if league.membership.role == "captain" %}
+                  <a class="btn btn-glass btn-sm" href="{% url 'leagues:captain' %}">Captain dashboard</a>
+                {% endif %}
+                <a class="btn btn-primary btn-sm" href="{% url 'leagues:detail' league.pk %}">Open<svg class="icon icon-arrow" aria-hidden="true"><use href="#i-arrow"></use></svg></a>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    {% if all_star_entries %}
+      <section class="card" aria-labelledby="my-all-star" data-reveal>
+        <div class="card-title"><h2 id="my-all-star">All-Star games</h2></div>
+        <ul class="owner-list">
+          {% for entry in all_star_entries %}
+            <li class="owner-row">
+              <div>
+                <strong>{{ entry.game.title }}</strong>
+                {% if entry.game.status == "published" and entry.team %}
+                  <span class="badge status-active">{{ entry.team.name }}</span>
+                {% else %}
+                  <span class="badge status-{{ entry.game.badge_status }}">{{ entry.game.get_status_display }}</span>
+                {% endif %}
+              </div>
+              <a class="btn btn-primary btn-sm" href="{% url 'allstars:detail' entry.game_id %}">Open<svg class="icon icon-arrow" aria-hidden="true"><use href="#i-arrow"></use></svg></a>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    <section class="card" aria-labelledby="registration-summary" data-reveal>
+      <div class="card-title">
+        <h2 id="registration-summary">Registrations</h2>
+        <span class="subtle">{{ confirmed_count }} confirmed · {{ pending_count }} awaiting payment</span>
+      </div>
+      {% if registrations %}
+        <ul class="row-list">
+          {% for registration in registrations %}
+            {% with theme=registration.event.category|event_theme %}
+            <li class="row-item">
+              <div class="row-thumb cover-art theme-{{ theme }}" aria-hidden="true">
+                {% if theme|theme_photo %}<img src="{{ theme|theme_photo }}" alt="" loading="lazy" decoding="async">{% endif %}
+                <svg class="icon cover-icon"><use href="#i-{{ theme }}"></use></svg>
+              </div>
+              <div class="row-main">
+                <h3><a href="{% url 'events:detail' registration.event_id %}">{{ registration.event.title }}</a></h3>
+                <p>{{ registration.event.starts_at|date:"D, j M Y H:i" }} · {{ registration.event.location.city }}</p>
+              </div>
+              <div class="row-side">
+                <span class="badge status-{{ registration.status }}">{{ registration.get_status_display }}</span>
+                {% if registration.status == "pending_payment" %}
+                  <form method="post" action="{% url 'payments:checkout' registration.id %}">
+                    {% csrf_token %}
+                    <button class="btn btn-primary btn-sm" type="submit">
+                      <svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>
+                      Continue to payment
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+            </li>
+            {% endwith %}
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="empty empty-sm">
+          <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-ticket"></use></svg></div>
+          <h3>You have not registered for an event yet.</h3>
+          <p>Find something you'd love to be part of.</p>
+          <a class="btn btn-primary btn-sm" href="{% url 'events:list' %}">Discover events</a>
+        </div>
+      {% endif %}
+    </section>
+
+    <section class="card" aria-labelledby="payment-history" data-reveal>
+      <div class="card-title"><h2 id="payment-history">Payment history</h2></div>
+      {% if payments %}
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th scope="col">Event</th><th scope="col" class="num">Amount</th><th scope="col">Status</th><th scope="col">Date</th></tr></thead>
+            <tbody>
+              {% for payment in payments %}
+                <tr>
+                  <td>{{ payment.registration.event.title }}</td>
+                  <td class="num">{{ payment.amount }} {{ payment.currency }}</td>
+                  <td><span class="badge status-{{ payment.status }}">{{ payment.get_status_display }}</span></td>
+                  <td>{{ payment.created_at|date:"j M Y H:i" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty empty-sm">
+          <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-card"></use></svg></div>
+          <p>No payments to show.</p>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+
+  <form method="post" action="{% url 'accounts:logout' %}" class="mt-6 text-center">
+    {% csrf_token %}
+    <button class="btn btn-ghost" type="submit">
+      <svg class="icon" aria-hidden="true"><use href="#i-logout"></use></svg>
+      Log out
+    </button>
+  </form>
+</div>
+{% endblock %}

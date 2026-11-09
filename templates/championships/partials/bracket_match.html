@@ -1,0 +1,19 @@
+<article class="bracket-match{% if match.is_completed %} is-done{% endif %}{% if match.status == 'in_progress' %} is-live{% endif %}" aria-label="{{ match.stage_label }}: {{ match.home_label }} versus {{ match.away_label }}">
+  <header class="bracket-match-head">
+    <span>{{ match.stage_label }}</span>
+    {% if match.kickoff_at %}<time datetime="{{ match.kickoff_at|date:'c' }}">{{ match.kickoff_at|date:"j M · H:i" }}</time>{% endif %}
+  </header>
+  <div class="bracket-team{% if not match.home_team_id %} is-tbd{% elif match.winner_id == match.home_team_id %} is-winner{% elif match.winner_id %} is-loser{% endif %}">
+    <span class="bracket-team-name">{{ match.home_label }}</span>
+    <span class="bracket-score">{% if match.is_completed %}{{ match.home_score }}{% if match.home_penalties is not None %}<small>({{ match.home_penalties }})</small>{% endif %}{% else %}–{% endif %}</span>
+  </div>
+  <div class="bracket-team{% if not match.away_team_id %} is-tbd{% elif match.winner_id == match.away_team_id %} is-winner{% elif match.winner_id %} is-loser{% endif %}">
+    <span class="bracket-team-name">{{ match.away_label }}</span>
+    <span class="bracket-score">{% if match.is_completed %}{{ match.away_score }}{% if match.away_penalties is not None %}<small>({{ match.away_penalties }})</small>{% endif %}{% else %}–{% endif %}</span>
+  </div>
+  {% if match.decided_by == "penalties" %}<p class="bracket-note">{{ match.winner.name }} win on penalties</p>
+  {% elif match.decided_by == "extra_time" %}<p class="bracket-note">After extra time</p>
+  {% elif match.decided_by == "organizer" %}<p class="bracket-note">{{ match.winner.name }} advance by organizer decision</p>
+  {% elif match.status == "postponed" %}<p class="bracket-note">Postponed</p>
+  {% elif match.status == "in_progress" %}<p class="bracket-note is-live">Live now</p>{% endif %}
+</article>

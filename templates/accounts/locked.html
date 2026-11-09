@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Too many attempts{% endblock %}
+
+{% block content %}
+<div class="container container-form">
+  <div class="card auth-card">
+    <p class="eyebrow">Sign in</p>
+    <h1>Too many attempts</h1>
+    <p class="muted">To protect this account, logging in is paused for a little while. Resetting your password gets you back in right away.</p>
+    <a class="btn btn-primary btn-lg btn-block mt-3" href="{% url 'accounts:password_reset' %}">Reset my password</a>
+  </div>
+</div>
+{% endblock %}

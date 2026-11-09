@@ -1,0 +1,66 @@
+{% extends "hub/panel_base.html" %}
+
+{% block title %}Event approvals{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header class="page-head">
+    <p class="eyebrow">Host panel</p>
+    <h1>Event approvals</h1>
+    <p class="lead">Events members create stay hidden until you approve them. You can cancel any event if something is wrong.</p>
+  </header>
+
+  <section class="card" aria-labelledby="pending-title">
+    <div class="card-title"><h2 id="pending-title">Waiting for approval</h2></div>
+    <ul class="owner-list">
+      {% for event in pending_events %}
+        <li class="owner-row">
+          <div>
+            <strong><a href="{% url 'events:detail' event.id %}">{{ event.title }}</a></strong>
+            <span class="muted">by {{ event.organizer.display_name }}</span>
+            <p class="muted">{{ event.starts_at|date:"D, j M Y H:i" }} · {{ event.location.city }} · {{ event.category }} · {% if event.is_free %}Free{% else %}{{ event.price }} {{ event.currency }}{% endif %}</p>
+          </div>
+          <form method="post" action="{% url 'hub:event_decide' event.id %}" class="cluster">
+            {% csrf_token %}
+            <input type="text" name="note" maxlength="1000" placeholder="Message to the organizer (optional)" aria-label="Message to the organizer about {{ event.title }}">
+            <button class="btn btn-ghost btn-sm" type="submit" name="decision" value="reject">Decline</button>
+            <button class="btn btn-primary btn-sm" type="submit" name="decision" value="approve"><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>Approve</button>
+          </form>
+        </li>
+      {% empty %}
+        <li class="muted">No events are waiting.</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="card mt-6" aria-labelledby="live-title">
+    <div class="card-title"><h2 id="live-title">Upcoming events</h2></div>
+    <p class="muted">Cancelling tells everyone registered. Payments are not refunded automatically.</p>
+    <ul class="owner-list">
+      {% for event in live_events %}
+        <li class="owner-row">
+          <div>
+            <strong><a href="{% url 'events:detail' event.id %}">{{ event.title }}</a></strong>
+            <span class="badge status-{{ event.status }}">{{ event.get_status_display }}</span>
+            <p class="muted">by {{ event.organizer.display_name }} · {{ event.starts_at|date:"D, j M Y H:i" }} · {{ event.location.city }}</p>
+          </div>
+          <form method="post" action="{% url 'hub:event_decide' event.id %}" class="cluster" data-confirm="Cancel this event? Everyone registered will be told.">
+            {% csrf_token %}
+            <input type="text" name="note" maxlength="1000" placeholder="Reason (optional)" aria-label="Reason for cancelling {{ event.title }}">
+            <button class="btn btn-ghost btn-sm" type="submit" name="decision" value="cancel">Cancel event</button>
+          </form>
+        </li>
+      {% empty %}
+        <li class="muted">No upcoming events.</li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+<script>
+  document.querySelectorAll("form[data-confirm]").forEach(function (form) {
+    form.addEventListener("submit", function (event) {
+      if (!window.confirm(form.dataset.confirm)) event.preventDefault();
+    });
+  });
+</script>
+{% endblock %}

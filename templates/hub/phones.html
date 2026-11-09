@@ -1,0 +1,53 @@
+{% extends "hub/panel_base.html" %}
+
+{% block title %}Pre-approved phone numbers{% endblock %}
+
+{% block content %}
+<div class="container container-form">
+  <header class="page-head">
+    <a class="back-link" href="{% url 'hub:members' %}"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"></use></svg>Members</a>
+    <p class="eyebrow">Host panel</p>
+    <h1>Pre-approved phone numbers</h1>
+    <p class="lead">Add someone's number, then send them the sign-up link. When they create an account with this number, they join right away without waiting for you.</p>
+  </header>
+
+  <form method="post" class="card form-card">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="stack">
+      {% for field in form %}{% include "partials/field.html" %}{% endfor %}
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>Add number</button>
+    </div>
+  </form>
+
+  <section class="card mt-6" aria-labelledby="numbers-title">
+    <div class="card-title"><h2 id="numbers-title">Your list</h2></div>
+    <ul class="owner-list">
+      {% for entry in entries %}
+        <li class="owner-row">
+          <div>
+            <strong>{{ entry.phone }}</strong>
+            {% if entry.name %}<span class="muted">{{ entry.name }}</span>{% endif %}
+            {% if entry.claimed_by %}
+              <span class="badge status-active">Joined</span>
+              <p class="muted">Signed up as {{ entry.claimed_by.display_name }} on {{ entry.claimed_at|date:"j M Y" }}.</p>
+            {% else %}
+              <span class="badge status-pending">Not signed up yet</span>
+            {% endif %}
+          </div>
+          {% if not entry.claimed_by %}
+            <form method="post" action="{% url 'hub:phone_delete' entry.pk %}">
+              {% csrf_token %}
+              <button class="btn btn-ghost btn-sm" type="submit">Remove</button>
+            </form>
+          {% endif %}
+        </li>
+      {% empty %}
+        <li class="muted">No numbers yet.</li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}

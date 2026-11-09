@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Log in{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="auth-wrap">
+    <div class="auth-art cover-art theme-party" aria-hidden="true">
+      <svg class="icon cover-icon"><use href="#i-sparkle"></use></svg>
+      <div class="auth-art-copy">
+        <h2>Welcome back.</h2>
+        <p>Your events, registrations and leagues are right where you left them.</p>
+      </div>
+    </div>
+
+    <div class="card auth-card">
+      <p class="eyebrow">Sign in</p>
+      <h1>Log in to {{ site.site_name }}</h1>
+      <p class="muted">Pick up where you left off.</p>
+      {% if form.errors %}
+        <div class="callout callout-error mb-3" role="alert">
+          <svg class="icon" aria-hidden="true"><use href="#i-alert"></use></svg>
+          <span>That username, email or password was not accepted.</span>
+        </div>
+      {% endif %}
+      <form method="post" class="mt-4">
+        {% csrf_token %}
+        {% include "partials/field.html" with field=form.username %}
+        {% include "partials/field.html" with field=form.password %}
+        <button class="btn btn-primary btn-lg btn-block mt-3" type="submit">Log in</button>
+      </form>
+      <p class="auth-switch"><a href="{% url 'accounts:password_reset' %}">Forgot your password?</a></p>
+      <p class="auth-switch">Need an account? <a href="{% url 'accounts:register' %}">Register</a></p>
+    </div>
+  </div>
+</div>
+{% endblock %}

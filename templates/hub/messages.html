@@ -1,0 +1,52 @@
+{% extends "hub/panel_base.html" %}
+
+{% block title %}{% if member %}Chat with {{ member.display_name }}{% else %}Messages{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header class="page-head">
+    <p class="eyebrow">Host panel</p>
+    <h1>Messages</h1>
+    <p class="lead">Private chats with your members. Start one from the Members page.</p>
+  </header>
+
+  <div class="inbox{% if member %} has-thread{% endif %}">
+    <nav class="card inbox-list" aria-label="Conversations">
+      <ul>
+        {% for conversation in conversations %}
+          <li>
+            <a href="{% url 'hub:message_thread' conversation.member_id %}"{% if member and conversation.member_id == member.pk %} aria-current="page"{% endif %}>
+              <span class="avatar" aria-hidden="true">{{ conversation.member.username|first }}</span>
+              <span class="inbox-who">
+                <strong>{{ conversation.member.display_name }}</strong>
+                <small class="muted">{% if conversation.last_message_at %}{{ conversation.last_message_at|timesince }} ago{% else %}No messages{% endif %}</small>
+              </span>
+              {% if conversation.unread %}<span class="panel-count">{{ conversation.unread }}</span>{% endif %}
+            </a>
+          </li>
+        {% empty %}
+          <li class="muted inbox-empty">No conversations yet.</li>
+        {% endfor %}
+      </ul>
+    </nav>
+
+    <section class="card inbox-thread">
+      {% if member %}
+        <div class="card-title">
+          <h2>{{ member.display_name }}</h2>
+          <span class="muted">{{ member.email }}{% if member.phone %} · {{ member.phone }}{% endif %}{% if member.approval_status != "approved" %} · <span class="badge status-{{ member.approval_status }}">{{ member.get_approval_status_display }}</span>{% endif %}</span>
+        </div>
+        {% url 'hub:message_thread' member.pk as send_url %}
+        {% url 'hub:message_poll' member.pk as poll_url %}
+        {% include "messaging/_thread.html" with empty_text="No messages yet. Write the first one." %}
+      {% else %}
+        <div class="empty">
+          <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-chat"></use></svg></div>
+          <h2>Pick a conversation</h2>
+          <p>Or open <a href="{% url 'hub:members' %}">Members</a> and press Message next to anyone.</p>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

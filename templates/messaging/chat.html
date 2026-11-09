@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Message the host{% endblock %}
+
+{% block content %}
+<div class="container container-form">
+  <header class="page-head">
+    <p class="eyebrow">Messages</p>
+    <h1>Chat with the host</h1>
+    <p class="lead">Questions, ideas or problems? Write to the host of {{ site.site_name }} here. Only you and the host can see this chat.</p>
+  </header>
+  <section class="card">
+    {% url 'messaging:chat' as send_url %}
+    {% url 'messaging:poll' as poll_url %}
+    {% include "messaging/_thread.html" with empty_text="No messages yet. Say hello!" %}
+  </section>
+</div>
+{% endblock %}

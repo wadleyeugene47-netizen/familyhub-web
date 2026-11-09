@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load tz %}
+
+{% block title %}{{ game.title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header class="page-head" data-reveal>
+    <div class="page-head-row">
+      <div>
+        <a class="back-link" href="{% url 'communities:detail' game.community.slug %}"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"></use></svg>{{ game.community.name }}</a>
+        <p class="eyebrow">All-Star game</p>
+        <h1>{{ game.title }} <span class="badge status-{{ game.badge_status }}">{{ game.get_status_display }}</span></h1>
+        <p class="lead">{{ game.starts_at|timezone:game.timezone|date:"D, j M Y H:i" }} ({{ game.timezone }}){% if game.venue %} · {{ game.venue }}{% endif %}</p>
+        <p class="muted">{{ player_count }} player{{ player_count|pluralize }} registered{% if game.registration_closes_at %} · registration closes {{ game.registration_closes_at|timezone:game.timezone|date:"j M Y H:i" }}{% endif %}</p>
+      </div>
+      {% if can_manage %}
+        <a class="btn btn-primary" href="{% url 'allstars:manage' game.pk %}"><svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg>Ratings &amp; teams</a>
+      {% endif %}
+    </div>
+  </header>
+
+  <div class="dash-layout">
+    {% if game.description %}
+      <section class="card" aria-labelledby="about"><div class="card-title"><h2 id="about">About this game</h2></div><p>{{ game.description|linebreaksbr }}</p></section>
+    {% endif %}
+
+    {% if game.status == "published" %}
+      {% if request.user.is_authenticated %}
+        {% if my_registration.team and my_registration.status == "active" %}
+          <p class="callout"><svg class="icon" aria-hidden="true"><use href="#i-check-circle"></use></svg><span>You're on <strong>{{ my_registration.team.name }}</strong>.</span></p>
+        {% endif %}
+        <div class="grid grid-cards">
+          {% for team in teams %}
+            <section class="card" aria-labelledby="team-{{ team.pk }}">
+              <div class="card-title"><h2 id="team-{{ team.pk }}">{{ team.name }}</h2></div>
+              <ul class="owner-list">
+                {% for player in team.players %}
+                  <li class="owner-row"><span>{{ player.user.get_full_name|default:player.user.username }}</span><span class="muted">{{ player.position_label }}</span></li>
+                {% endfor %}
+              </ul>
+            </section>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="callout"><svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg><span>The teams are announced. <a href="{% url 'accounts:login' %}?next={{ request.path }}">Sign in</a> to see them.</span></p>
+      {% endif %}
+    {% elif game.accepting_registrations %}
+      {% if not request.user.is_authenticated %}
+        <section class="card">
+          <div class="card-title"><h2>Want to play?</h2></div>
+          <a class="btn btn-primary" href="{% url 'accounts:login' %}?next={{ request.path }}">Sign in to register</a>
+        </section>
+      {% elif form %}
+        <form method="post" action="{% url 'allstars:register' game.pk %}" class="card form-card">
+          {% csrf_token %}
+          <div class="card-title"><h2>{% if my_registration.status == "active" %}Your registration{% else %}Register to play{% endif %}</h2></div>
+          {% include "partials/form_fields.html" %}
+          <div class="form-actions">
+            <button class="btn btn-primary" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>{% if my_registration.status == "active" %}Save changes{% else %}Register{% endif %}</button>
+          </div>
+        </form>
+        {% if my_registration.status == "active" %}
+          <form method="post" action="{% url 'allstars:withdraw' game.pk %}" data-confirm="Take yourself off the list?">
+            {% csrf_token %}
+            <button class="btn btn-ghost" type="submit">Withdraw</button>
+          </form>
+        {% endif %}
+      {% else %}
+        <p class="callout callout-warning"><svg class="icon" aria-hidden="true"><use href="#i-alert"></use></svg><span>The organizer removed you from this game.</span></p>
+      {% endif %}
+    {% elif my_registration.status == "active" %}
+      <p class="callout"><svg class="icon" aria-hidden="true"><use href="#i-clock"></use></svg><span>You're registered. The teams will appear here once the organizer announces them.</span></p>
+    {% else %}
+      <p class="callout"><svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg><span>Registration for this game is closed.</span></p>
+    {% endif %}
+  </div>
+</div>
+<script>
+  document.querySelectorAll("form[data-confirm]").forEach(function (form) {
+    form.addEventListener("submit", function (event) {
+      if (!window.confirm(form.dataset.confirm)) event.preventDefault();
+    });
+  });
+</script>
+{% endblock %}

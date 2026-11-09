@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Manage {{ league.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header class="page-head">
+    <a class="back-link" href="{% url 'leagues:organizer_list' %}"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"></use></svg>Your leagues</a>
+    <div class="page-head-row">
+      <div>
+        <p class="eyebrow">Manage league</p>
+        <h1>Manage {{ league.name }}</h1>
+        <p class="lead">Status: <span class="badge status-{{ league.status }}">{{ league.get_status_display }}</span></p>
+      </div>
+      <div class="cluster">
+        <a class="btn btn-glass" href="{% url 'leagues:detail' league.id %}">
+          <svg class="icon" aria-hidden="true"><use href="#i-globe"></use></svg>
+          Public league page
+        </a>
+        {% if league.status == "draft" %}
+          <a class="btn btn-glass" href="{% url 'leagues:update' league.id %}">
+            <svg class="icon" aria-hidden="true"><use href="#i-edit"></use></svg>
+            Edit league details
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  {% if league.status == "draft" %}
+    {% if teams|length >= 2 %}
+      <div class="callout mb-3">
+        <svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>
+        <div class="cluster cluster-between grow">
+          <span>Ready to go? Activating publishes the league and its scheduled fixtures.</span>
+          <form method="post" action="{% url 'leagues:activate' league.id %}" class="inline-form" data-confirm="Activate this league and publish its fixtures?">
+            {% csrf_token %}
+            <button class="btn btn-primary btn-sm" type="submit">Activate league</button>
+          </form>
+        </div>
+      </div>
+    {% else %}
+      <div class="callout callout-warning mb-3">
+        <svg class="icon" aria-hidden="true"><use href="#i-alert"></use></svg>
+        <span>Add two or more teams before activating.</span>
+      </div>
+    {% endif %}
+  {% endif %}
+
+  <div class="grid grid-2 mt-5">
+    <section class="card" aria-labelledby="teams-heading" data-reveal>
+      <div class="card-title">
+        <h2 id="teams-heading">Teams</h2>
+        {% if league.status == "draft" or league.status == "active" %}
+          <a class="btn btn-glass btn-sm" href="{% url 'leagues:team_create' league.id %}">
+            <svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>
+            Add team
+          </a>
+        {% endif %}
+      </div>
+      {% if teams %}
+        <ul class="team-pills">
+          {% for team in teams %}
+            <li><span class="avatar" aria-hidden="true">{{ team.short_name|default:team.name|first }}</span>{{ team.name }}{% if team.short_name %} <span class="subtle">({{ team.short_name }})</span>{% endif %}</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="empty empty-sm">
+          <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-users"></use></svg></div>
+          <p>No teams yet.</p>
+        </div>
+      {% endif %}
+    </section>
+
+    <section class="card" aria-labelledby="fixtures-heading" data-reveal>
+      <div class="card-title">
+        <h2 id="fixtures-heading">Fixtures</h2>
+        {% if league.status == "draft" or league.status == "active" %}{% if teams|length >= 2 %}
+          <a class="btn btn-glass btn-sm" href="{% url 'leagues:match_schedule' league.id %}">
+            <svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>
+            Schedule match
+          </a>
+        {% endif %}{% endif %}
+      </div>
+      {% if matches %}
+        <ul class="row-list">
+          {% for match in matches %}
+            <li class="row-item">
+              <div class="row-main">
+                <h3>{{ match.home_team.name }} vs {{ match.away_team.name }}</h3>
+                <p>{{ match.event.starts_at|date:"j M Y H:i" }} · <span class="badge status-{{ match.status }}">{{ match.get_status_display }}</span></p>
+              </div>
+              <div class="row-side">
+                {% if match.status == "scheduled" %}
+                  <a class="btn btn-primary btn-sm" href="{% url 'leagues:match_result' league.id match.id %}">Record result</a>
+                {% else %}
+                  <span class="match-score">{{ match.home_score }}–{{ match.away_score }}</span>
+                {% endif %}
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="empty empty-sm">
+          <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg></div>
+          <p>No matches scheduled yet.</p>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

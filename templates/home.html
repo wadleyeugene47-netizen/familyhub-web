@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+{% load gatherplay %}
+
+{% block title %}FAMILY HUB.{% endblock %}
+
+{% block content %}
+<section class="hero" data-parallax-root aria-labelledby="hero-title">
+  <div class="container hero-grid">
+    <div class="hero-copy">
+      <p class="hero-pill"><b>New</b> Come enjoy</p>
+      <h1 id="hero-title">
+        <span class="line">Welcome.</span>
+        <span class="line">to.</span>
+        <span class="line text-gradient">Brothers & Goal.</span>
+      </h1>
+      <p class="lead">Welcome to our community, where every one will have fun and joy.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary btn-lg" href="{% url 'events:list' %}">
+          Explore Events
+          <svg class="icon icon-arrow" aria-hidden="true"><use href="#i-arrow"></use></svg>
+        </a>
+        <a class="btn btn-glass btn-lg" href="{% url 'events:create' %}">
+          <svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>
+          Create an Event
+        </a>
+      </div>
+      {% if upcoming_count %}
+        <ul class="hero-stats" aria-label="{{ site.site_name }} right now">
+          <li><strong>{{ upcoming_count }}</strong><span>upcoming event{{ upcoming_count|pluralize }}</span></li>
+          <li><strong>{{ city_count }}</strong><span>cit{{ city_count|pluralize:"y,ies" }}</span></li>
+        </ul>
+      {% else %}
+        <ul class="hero-stats" aria-label="What you can do">
+          <li><strong>Events</strong><span>Free or ticketed</span></li>
+          <li><strong>Leagues</strong><span>Fixtures &amp; standings</span></li>
+          <li><strong>Maps</strong><span>Venue directions</span></li>
+        </ul>
+      {% endif %}
+    </div>
+
+    <div class="hero-stage" aria-hidden="true">
+      <div class="stage-inner" data-parallax>
+        <div class="stage-glow"></div>
+        <div class="stage-ring"></div>
+        <span class="stage-shape s1"></span>
+        <span class="stage-shape s2"></span>
+        <span class="stage-shape s3"></span>
+
+        {% if hero_events %}
+          {% for event in hero_events %}
+            {% with theme=event.category|event_theme image=event.images.all|first %}
+              <a class="float-card c{{ forloop.counter }} theme-{{ theme }}" href="{% url 'events:detail' event.id %}" tabindex="-1">
+                <div class="cover-art">
+                  {% if image %}<img src="{{ image.image.url }}" alt="" loading="lazy" decoding="async">{% elif theme|theme_photo %}<img src="{{ theme|theme_photo }}" alt="" loading="lazy" decoding="async">{% endif %}
+                  <svg class="icon cover-icon"><use href="#i-{{ theme }}"></use></svg>
+                </div>
+                <div class="float-card-body">
+                  <strong>{{ event.title|truncatechars:34 }}</strong>
+                  <small><svg class="icon"><use href="#i-calendar"></use></svg>{{ event.starts_at|date:"D, j M" }} · {{ event.location.city }}</small>
+                </div>
+              </a>
+            {% endwith %}
+          {% endfor %}
+        {% else %}
+          <div class="float-card c1 theme-sports">
+            <div class="cover-art"><img src="{{ "sports"|theme_photo }}" alt="" decoding="async"></div>
+            <div class="float-card-body"><strong>Soccer &amp; Sports</strong><small><svg class="icon"><use href="#i-trophy"></use></svg>Leagues and pickup games</small></div>
+          </div>
+          <div class="float-card c2 theme-party">
+            <div class="cover-art"><img src="{{ "party"|theme_photo }}" alt="" decoding="async"></div>
+            <div class="float-card-body"><strong>Parties</strong><small><svg class="icon"><use href="#i-sparkle"></use></svg>Celebrations and nights out</small></div>
+          </div>
+          <div class="float-card c3 theme-outdoor">
+            <div class="cover-art"><img src="{{ "outdoor"|theme_photo }}" alt="" decoding="async"></div>
+            <div class="float-card-body"><strong>Picnics &amp; Outdoors</strong><small><svg class="icon"><use href="#i-pin"></use></svg>Days in the sun</small></div>
+          </div>
+        {% endif %}
+
+        <div class="stage-badge b1"><svg class="icon"><use href="#i-users"></use></svg>Bring your people</div>
+        {% if upcoming_count %}
+          <div class="stage-badge b2"><span class="dot"></span>{{ upcoming_count }} happening soon</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+{% if spotlight_leagues %}
+<section class="section" id="leagues" aria-labelledby="leagues-title">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <div>
+        <p class="eyebrow">Our community</p>
+        <h2 id="leagues-title">{% if spotlight_leagues|length == 1 %}{{ spotlight_leagues.0.name }}{% else %}Community leagues{% endif %}</h2>
+        <p class="lead">See the teams, follow the standings and talk with everyone in the league chat.</p>
+      </div>
+    </div>
+    <div class="league-spotlight-grid">
+      {% for league in spotlight_leagues %}
+        <a class="league-spotlight cover-art theme-sports" href="{% url 'leagues:detail' league.pk %}" data-reveal>
+          <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-trophy"></use></svg></span>
+          <span class="league-spotlight-copy">
+            <strong>{{ league.name }}</strong>
+            <span>{{ league.team_count }} team{{ league.team_count|pluralize }} · {{ league.games_played }} game{{ league.games_played|pluralize }} played</span>
+            {% if league.next_match %}
+              <span>Next: {{ league.next_match.home_team.name }} vs {{ league.next_match.away_team.name }} · {{ league.next_match.event.starts_at|date:"D j M, H:i" }}</span>
+            {% elif league.description %}
+              <span>{{ league.description|truncatechars:110 }}</span>
+            {% endif %}
+          </span>
+          <span class="btn btn-primary btn-sm">Open<svg class="icon icon-arrow" aria-hidden="true"><use href="#i-arrow"></use></svg></span>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="section" id="featured" aria-labelledby="featured-title">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <div>
+        <p class="eyebrow">Featured</p>
+        <h2 id="featured-title">Upcoming events</h2>
+        <p class="lead">The next events on the calendar. Grab a spot before they fill up.</p>
+      </div>
+      {% if featured_events %}
+        <a class="btn btn-glass" href="{% url 'events:list' %}">
+          See all events
+          <svg class="icon icon-arrow" aria-hidden="true"><use href="#i-arrow"></use></svg>
+        </a>
+      {% endif %}
+    </div>
+    {% if featured_events %}
+      <div class="grid grid-cards">
+        {% for event in featured_events %}
+          {% include "partials/event_card.html" %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty" data-reveal>
+        <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg></div>
+        <h3>No upcoming events yet</h3>
+        <p>Be the first to put something on the calendar. Publish an event and it will show up here.</p>
+        <a class="btn btn-primary" href="{% url 'events:create' %}">
+          <svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>
+          Create the first event
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<section class="section" id="categories" aria-labelledby="categories-title">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <div>
+        <p class="eyebrow">Browse</p>
+        <h2 id="categories-title">Find your kind of event</h2>
+        <p class="lead">From Sunday league matches to sunset picnics, there's a crowd for everything.</p>
+      </div>
+    </div>
+    <div class="cat-grid">
+      {% for tile in category_tiles %}
+        <a class="cat-tile theme-{{ tile.key }}{% if tile.key|theme_photo %} has-photo{% endif %}" href="{{ tile.url }}" data-tilt data-reveal style="--i: {{ forloop.counter0 }}">
+          {% if tile.key|theme_photo %}<img class="cat-photo" src="{{ tile.key|theme_photo }}" alt="" loading="lazy" decoding="async">{% endif %}
+          <span class="cat-icon" aria-hidden="true"><svg class="icon"><use href="#i-{{ tile.key }}"></use></svg></span>
+          <div>
+            <h3>{{ tile.label }}</h3>
+            <p>{{ tile.blurb }}</p>
+            {% if tile.count %}<span class="cat-count">{{ tile.count }} upcoming</span>{% endif %}
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section" id="how-it-works" aria-labelledby="how-title">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <div>
+        <p class="eyebrow">How it works</p>
+        <h2 id="how-title">Three steps to a full house</h2>
+        <p class="lead">{{ site.site_name }} is one home for all your communities: one account, every league and group you belong to.</p>
+      </div>
+    </div>
+    <ol class="steps">
+      <li class="step" data-reveal style="--i: 0">
+        <div class="step-icon" aria-hidden="true"><svg class="icon"><use href="#i-search"></use></svg></div>
+        <h3>Discover an event</h3>
+        <p>Search by keyword, category or city to find what's happening near you.</p>
+      </li>
+      <li class="step" data-reveal style="--i: 1">
+        <div class="step-icon" aria-hidden="true"><svg class="icon"><use href="#i-ticket"></use></svg></div>
+        <h3>Join or create your own</h3>
+        <p>Register in a click, or publish your own event and league in minutes.</p>
+      </li>
+      <li class="step" data-reveal style="--i: 2">
+        <div class="step-icon" aria-hidden="true"><svg class="icon"><use href="#i-users"></use></svg></div>
+        <h3>Bring people together</h3>
+        <p>Share the venue, keep track of who's coming, and make it a moment.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section class="section" id="organize" aria-labelledby="organize-title">
+  <div class="container">
+    <div class="promo" data-reveal>
+      <div>
+        <p class="eyebrow">For organizers</p>
+        <h2 id="organize-title">Your Event Starts Here.</h2>
+        <p class="lead">Host a one-off party or run a full soccer season. {{ site.site_name }} gives you the tools to plan it, fill it and run it.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary btn-lg" href="{% if request.user.is_authenticated %}{% url 'events:create' %}{% else %}{% url 'accounts:register' %}{% endif %}">
+            Start Organizing
+            <svg class="icon icon-arrow" aria-hidden="true"><use href="#i-arrow"></use></svg>
+          </a>
+          <a class="btn btn-glass btn-lg" href="{% url 'leagues:create' %}">
+            <svg class="icon" aria-hidden="true"><use href="#i-trophy"></use></svg>
+            Start a league
+          </a>
+        </div>
+      </div>
+      <ul class="promo-list">
+        <li>
+          <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-calendar"></use></svg></span>
+          <span><strong>Create events</strong><span>Set dates, capacity, pricing and publish when you're ready.</span></span>
+        </li>
+        <li>
+          <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-users"></use></svg></span>
+          <span><strong>Manage registrations</strong><span>See who's confirmed and who's still completing payment.</span></span>
+        </li>
+        <li>
+          <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-map"></use></svg></span>
+          <span><strong>Share locations</strong><span>Venue maps and one-tap directions on every event page.</span></span>
+        </li>
+        <li>
+          <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-card"></use></svg></span>
+          <span><strong>Collect payments</strong><span>Connect a Stripe account to sell tickets for paid events.</span></span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Edit schedule{% endblock %}
+
+{% block content %}
+<div class="container container-narrow">
+  <header class="page-head">
+    <a class="back-link" href="{% url 'championships:manage' championship.id %}#match-{{ match.id }}"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"></use></svg>{{ championship.name }}</a>
+    <p class="eyebrow">{{ match.stage_label }}</p>
+    <h1>Edit schedule</h1>
+    <p class="lead">{{ match.home_label }} vs {{ match.away_label }}</p>
+  </header>
+
+  {% if championship.is_public %}
+    <div class="callout callout-warning mb-3"><svg class="icon" aria-hidden="true"><use href="#i-alert"></use></svg><span>This championship is public. Changes are visible immediately and recorded in the change history.</span></div>
+  {% endif %}
+  {% if conflict %}
+    <div class="callout callout-error mb-3" role="alert"><svg class="icon" aria-hidden="true"><use href="#i-alert"></use></svg>
+      <div><strong>This status change reopens a group whose qualifiers already played knockout matches.</strong>
+        <ul>{% for item in conflict %}<li>{{ item.stage_label }}: {{ item.home_label }} vs {{ item.away_label }} ({{ item.home_score }}–{{ item.away_score }})</li>{% endfor %}</ul>
+        <p>Confirm below to clear those results. Nothing has been saved yet.</p></div>
+    </div>
+  {% endif %}
+
+  <form method="post" class="card form-card">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="form-grid">
+      {% include "partials/field.html" with field=form.kickoff_at %}
+      {% include "partials/field.html" with field=form.field_name %}
+      {% include "partials/field.html" with field=form.status %}
+      {% include "partials/field.html" with field=form.note %}
+    </div>
+    <p class="help mt-3">Times are in {{ championship.timezone }}. {% if match.is_completed %}To change the status of a completed match, clear its result first.{% elif not match.is_knockout %}Cancelled group matches are left out of the standings; postponed matches keep the group open.{% else %}Knockout matches cannot be cancelled, because someone has to advance. Use an organizer decision on the result form instead.{% endif %}</p>
+    {% if conflict %}
+      <label class="check-field confirm-field"><input type="checkbox" name="confirm_reset" required> <span>Clear the affected knockout results.</span></label>
+    {% endif %}
+    <div class="form-actions">
+      <a class="btn btn-ghost" href="{% url 'championships:manage' championship.id %}#match-{{ match.id }}">Cancel</a>
+      <button class="btn btn-primary btn-lg" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>Save schedule</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

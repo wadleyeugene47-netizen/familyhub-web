@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load tz %}
+
+{% block title %}All-Star games{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header class="page-head" data-reveal>
+    <div class="page-head-row">
+      <div>
+        <p class="eyebrow">All-Star</p>
+        <h1>All-Star games</h1>
+        <p class="lead">Sign up, and the organizer builds fair teams from everyone who registers.</p>
+      </div>
+      <a class="btn btn-glass" href="{% url 'allstars:create' %}"><svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>Create a game</a>
+    </div>
+  </header>
+
+  {% if games %}
+    <div class="grid grid-cards">
+      {% for game in games %}
+        <article class="league-card theme-sports" data-tilt data-reveal style="--i: {{ forloop.counter0 }}">
+          <div class="league-card-top">
+            <span class="cat-icon" aria-hidden="true"><svg class="icon"><use href="#i-sparkle"></use></svg></span>
+            <span class="badge status-{{ game.badge_status }}">{{ game.get_status_display }}</span>
+          </div>
+          <div>
+            <h2><a href="{% url 'allstars:detail' game.pk %}">{{ game.title }}</a></h2>
+            <p class="muted">{{ game.starts_at|timezone:game.timezone|date:"D, j M Y H:i" }} ({{ game.timezone }})</p>
+            <p class="muted">{{ game.community.name }}</p>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty">
+      <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-sparkle"></use></svg></div>
+      <h2>No All-Star games right now.</h2>
+      <p>Organizers can create one from their community dashboard.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

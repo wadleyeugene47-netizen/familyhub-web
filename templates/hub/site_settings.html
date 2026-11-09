@@ -1,0 +1,23 @@
+{% extends "hub/panel_base.html" %}
+
+{% block title %}Site settings{% endblock %}
+
+{% block content %}
+<div class="container container-form">
+  <header class="page-head">
+    <p class="eyebrow">Settings</p>
+    <h1>Site settings</h1>
+  </header>
+  <form method="post" class="card form-card">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="stack">
+      {% for field in form %}{% include "partials/field.html" %}{% endfor %}
+    </div>
+    <div class="form-actions">
+      <a class="btn btn-ghost" href="{% url 'hub:dashboard' %}">Cancel</a>
+      <button class="btn btn-primary" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>Save settings</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% load gatherplay %}
+
+{% block title %}{{ event.title }}{% endblock %}
+{% block description %}{{ event.description|truncatechars:150 }}{% endblock %}
+
+{% block content %}
+{% with theme=event.category|event_theme cover=event.images.all|first %}
+<div class="container">
+  <div class="detail-hero cover-art theme-{{ theme }}">
+    {% if cover %}<img src="{{ cover.image.url }}" alt="{{ cover.alt_text }}" decoding="async">{% elif theme|theme_photo %}<img src="{{ theme|theme_photo }}" alt="" decoding="async">{% endif %}
+    <svg class="icon cover-icon" aria-hidden="true"><use href="#i-{{ theme }}"></use></svg>
+    <div class="detail-hero-shade"></div>
+    <div class="detail-hero-copy">
+      <a class="back-link" href="{% url 'events:list' %}"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"></use></svg>All events</a>
+      <div class="cluster">
+        <span class="chip">{{ event.category.name }}</span>
+        {% if event.status != "published" %}<span class="badge status-{{ event.status }}">{{ event.get_status_display }}</span>{% endif %}
+      </div>
+      <h1>{{ event.title }}</h1>
+      <div class="cluster">
+        <span class="organizer"><span class="avatar" aria-hidden="true">{{ event.organizer.display_name|first }}</span><span>Organized by {{ event.organizer.display_name }}</span></span>
+      </div>
+    </div>
+  </div>
+
+  {% if event.status == "draft" %}
+    <div class="callout callout-warning mt-5">
+      <svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>
+      <span>This event is a draft and only visible to its organizer.</span>
+    </div>
+  {% endif %}
+
+  <div class="detail-layout">
+    <div class="stack">
+      <section class="card" aria-labelledby="about-heading" data-reveal>
+        <h2 id="about-heading">About this event</h2>
+        <div class="prose">{{ event.description|linebreaks }}</div>
+      </section>
+
+      <section class="card" aria-labelledby="venue-heading" data-reveal>
+        <div class="card-title">
+          <h2 id="venue-heading">Venue and directions</h2>
+          <a class="btn btn-glass btn-sm" href="{{ directions_url }}" target="_blank" rel="noopener noreferrer">
+            Open directions
+            <svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg>
+            <span class="sr-only">(opens in a new tab)</span>
+          </a>
+        </div>
+        <ul class="info-list">
+          <li>
+            <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-pin"></use></svg></span>
+            <span><strong>{{ event.location.name|default:event.location.city }}</strong><span>{{ event.location.address_line }}, {{ event.location.city }}{% if event.location.region %}, {{ event.location.region }}{% endif %}{% if event.location.postal_code %} {{ event.location.postal_code }}{% endif %}, {{ event.location.country_code }}</span></span>
+          </li>
+        </ul>
+        {% if map_embed_url %}
+          <div class="map-frame">
+            <iframe
+              title="Map showing {{ event.location.name|default:event.location.city }}"
+              src="{{ map_embed_url }}"
+              width="100%"
+              height="320"
+              loading="lazy"
+              referrerpolicy="no-referrer"
+            ></iframe>
+          </div>
+          <p class="subtle mt-2">Map data © OpenStreetMap contributors.</p>
+        {% else %}
+          <div class="map-empty">
+            <svg class="icon" aria-hidden="true"><use href="#i-map"></use></svg>
+            <p>Map preview unavailable because venue coordinates have not been added.</p>
+          </div>
+        {% endif %}
+      </section>
+
+      {% if event.images.all|length > 1 %}
+        <section class="card" aria-labelledby="gallery-heading" data-reveal>
+          <h2 id="gallery-heading">Gallery</h2>
+          <div class="gallery">
+            {% for image in event.images.all %}
+              <img src="{{ image.image.url }}" alt="{{ image.alt_text }}" loading="lazy" decoding="async">
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+    </div>
+
+    <aside class="detail-aside" aria-label="Event details and registration">
+      <div class="card">
+        <p class="price-tag">{% if event.is_free %}Free{% else %}{{ event.price }}<small>{{ event.currency }}</small>{% endif %}</p>
+        <ul class="info-list">
+          <li>
+            <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-calendar"></use></svg></span>
+            <span><strong>{{ event.starts_at|date:"l, j F Y" }}</strong><span>{{ event.starts_at|date:"H:i" }} to {{ event.ends_at|date:"H:i" }} ({{ event.timezone }})</span></span>
+          </li>
+          <li>
+            <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-pin"></use></svg></span>
+            <span><strong>{{ event.location.city }}</strong><span>{{ event.location.name|default:event.location.address_line }}</span></span>
+          </li>
+          <li>
+            <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-users"></use></svg></span>
+            <span><strong>Capacity: {{ event.capacity }}</strong><span>Places are first come, first served</span></span>
+          </li>
+        </ul>
+
+        {% if registration %}
+          <div class="reg-status{% if registration.status == 'pending_payment' %} is-pending{% endif %}">
+            <svg class="icon" aria-hidden="true"><use href="#i-{% if registration.status == 'pending_payment' %}clock{% else %}check-circle{% endif %}"></use></svg>
+            <span>Your registration: {{ registration.get_status_display }}</span>
+          </div>
+          {% if registration.status == "pending_payment" %}
+            <form method="post" action="{% url 'payments:checkout' registration.id %}" class="mt-4">
+              {% csrf_token %}
+              <button class="btn btn-primary btn-lg btn-block" type="submit">
+                <svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>
+                Continue to secure payment
+              </button>
+            </form>
+            <p class="secure-note mt-3"><svg class="icon" aria-hidden="true"><use href="#i-shield"></use></svg>You will be sent to Stripe's checkout page to complete payment.</p>
+          {% endif %}
+        {% elif event.status == "published" and request.user.is_authenticated and event.organizer.user_id != request.user.id %}
+          <form method="post" action="{% url 'events:register' event.id %}">
+            {% csrf_token %}
+            <button class="btn btn-primary btn-lg btn-block" type="submit">
+              <svg class="icon" aria-hidden="true"><use href="#i-ticket"></use></svg>
+              {% if event.is_free %}Register{% else %}Reserve place{% endif %}
+            </button>
+          </form>
+        {% elif event.status == "published" and not request.user.is_authenticated %}
+          <a class="btn btn-primary btn-lg btn-block" href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}">
+            <svg class="icon" aria-hidden="true"><use href="#i-ticket"></use></svg>
+            Log in to register
+          </a>
+          <p class="subtle mt-3 text-center">New here? <a href="{% url 'accounts:register' %}">Create a free account</a></p>
+        {% endif %}
+      </div>
+
+      {% if event.organizer.user_id == request.user.id %}
+        <div class="card card-sm">
+          <h2 class="label mb-3">Organizer tools</h2>
+          <div class="cluster">
+            <a class="btn btn-glass btn-sm" href="{% url 'events:update' event.id %}">
+              <svg class="icon" aria-hidden="true"><use href="#i-edit"></use></svg>
+              Edit event
+            </a>
+            {% if event.status == "published" or event.status == "draft" %}
+              <form method="post" action="{% url 'events:cancel' event.id %}" class="inline-form" data-confirm="Cancel this event? Registered participants will be notified and their registrations cancelled.">
+                {% csrf_token %}
+                <button class="btn btn-danger btn-sm" type="submit">Cancel event</button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    </aside>
+  </div>
+</div>
+{% endwith %}
+{% endblock %}

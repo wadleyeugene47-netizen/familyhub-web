@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Organizer payment setup{% endblock %}
+
+{% block content %}
+<div class="container container-narrow">
+  <header class="page-head">
+    <a class="back-link" href="{% url 'organizers:dashboard' %}"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"></use></svg>Organizer dashboard</a>
+    <p class="eyebrow">Payments</p>
+    <h1>Organizer payment setup</h1>
+    <p class="lead">Connect a Stripe account to sell tickets for paid events. Free events don't need this.</p>
+  </header>
+
+  <section class="card" aria-labelledby="account-heading">
+    <div class="card-title">
+      <h2 id="account-heading">Connected account</h2>
+      {% if payment_account %}
+        <span class="badge status-{{ payment_account.onboarding_status }}">{{ payment_account.get_onboarding_status_display }}</span>
+      {% else %}
+        <span class="badge status-not_started">Not connected</span>
+      {% endif %}
+    </div>
+
+    {% if payment_account %}
+      <ul class="check-list">
+        <li><span>Status</span><strong>{{ payment_account.get_onboarding_status_display }}</strong></li>
+        <li><span>Can accept charges</span><span class="badge {% if payment_account.charges_enabled %}status-enabled{% else %}status-pending{% endif %}">{{ payment_account.charges_enabled|yesno:"Yes,No" }}</span></li>
+        <li><span>Payouts enabled</span><span class="badge {% if payment_account.payouts_enabled %}status-enabled{% else %}status-pending{% endif %}">{{ payment_account.payouts_enabled|yesno:"Yes,No" }}</span></li>
+      </ul>
+      {% if payment_account.requirements_due %}
+        <div class="callout callout-warning">
+          <svg class="icon" aria-hidden="true"><use href="#i-alert"></use></svg>
+          <div>
+            <h3 class="label">Items Stripe still needs</h3>
+            <ul>{% for item in payment_account.requirements_due %}<li>{{ item }}</li>{% endfor %}</ul>
+          </div>
+        </div>
+      {% endif %}
+    {% else %}
+      <div class="empty empty-sm">
+        <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-card"></use></svg></div>
+        <p>No connected account is linked yet.</p>
+      </div>
+    {% endif %}
+
+    <form method="post" class="form-actions">
+      {% csrf_token %}
+      <button class="btn btn-primary btn-lg" type="submit">
+        <svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg>
+        {% if payment_account %}Continue Stripe onboarding{% else %}Connect Stripe account{% endif %}
+      </button>
+    </form>
+  </section>
+</div>
+{% endblock %}

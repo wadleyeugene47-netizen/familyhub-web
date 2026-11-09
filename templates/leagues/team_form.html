@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Add team to {{ league.name }}{% endblock %}
+
+{% block content %}
+<div class="container container-narrow">
+  <header class="page-head">
+    <a class="back-link" href="{% url 'leagues:manage' league.id %}"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"></use></svg>{{ league.name }}</a>
+    <p class="eyebrow">Teams</p>
+    <h1>Add team to {{ league.name }}</h1>
+  </header>
+  <form method="post" class="card form-card">
+    {% csrf_token %}
+    {% include "partials/form_fields.html" %}
+    <div class="form-actions">
+      <a class="btn btn-ghost" href="{% url 'leagues:manage' league.id %}">Cancel</a>
+      <button class="btn btn-primary btn-lg" type="submit">
+        <svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>
+        Add team
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

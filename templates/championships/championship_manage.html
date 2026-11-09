@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% load tz %}
+
+{% block title %}Manage {{ championship.name }}{% endblock %}
+
+{% block content %}
+{% timezone championship.timezone %}
+<div class="container">
+  <header class="page-head">
+    <a class="back-link" href="{% url 'championships:organizer_list' %}"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"></use></svg>Your championships</a>
+    <div class="page-head-row">
+      <div>
+        <p class="eyebrow">Match centre</p>
+        <h1>{{ championship.name }}</h1>
+        <p class="lead">{{ championship.get_format_display }} · <span class="badge status-{{ championship.status }}">{{ championship.get_status_display }}</span></p>
+      </div>
+      <div class="cluster">
+        <a class="btn btn-glass" href="{% url 'championships:detail' championship.id %}">
+          <svg class="icon" aria-hidden="true"><use href="#i-globe"></use></svg>
+          {% if championship.is_public %}Public page{% else %}Preview page{% endif %}
+        </a>
+        <a class="btn btn-glass" href="{% url 'championships:update' championship.id %}">
+          <svg class="icon" aria-hidden="true"><use href="#i-edit"></use></svg>
+          Settings
+        </a>
+        {% if championship.status == "draft" %}
+          <form method="post" action="{% url 'championships:publish' championship.id %}" class="inline-form" data-confirm="Publish this championship? Fixtures and standings become public.">
+            {% csrf_token %}
+            <button class="btn btn-primary" type="submit"{% if readiness_errors %} disabled aria-disabled="true"{% endif %}>
+              <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+              Publish
+            </button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  {% if championship.status == "draft" %}
+    <section class="card setup-card" aria-labelledby="setup-heading" data-reveal>
+      <div class="card-title"><h2 id="setup-heading">Before you publish</h2></div>
+      <ol class="setup-steps">
+        <li class="{% if not configuration_errors %}is-done{% endif %}">
+          <span class="step-dot" aria-hidden="true"></span>
+          <div><strong>Tournament configuration</strong>
+            {% if configuration_errors %}<ul class="errorlist">{% for error in configuration_errors %}<li>{{ error }}</li>{% endfor %}</ul>{% else %}<p class="subtle">Valid.</p>{% endif %}
+          </div>
+        </li>
+        <li class="{% if not team_errors %}is-done{% endif %}">
+          <span class="step-dot" aria-hidden="true"></span>
+          <div><strong>Teams registered</strong>
+            {% if team_errors %}<ul class="errorlist">{% for error in team_errors %}<li>{{ error }}</li>{% endfor %}</ul>{% else %}<p class="subtle">{{ teams|length }} teams{% if championship.has_groups %} in {{ groups|length }} groups{% endif %}.</p>{% endif %}
+          </div>
+        </li>
+        <li class="{% if has_fixtures %}is-done{% endif %}">
+          <span class="step-dot" aria-hidden="true"></span>
+          <div><strong>Fixtures generated</strong><p class="subtle">{% if has_fixtures %}{{ matches|length }} matches scheduled. Review them below.{% else %}Confirm the teams, then generate the schedule.{% endif %}</p></div>
+        </li>
+        <li class="{% if championship.location %}is-done{% endif %}">
+          <span class="step-dot" aria-hidden="true"></span>
+          <div><strong>Field location</strong><p class="subtle">{% if championship.location %}{{ championship.location }}{% else %}Add the venue in <a href="{% url 'championships:update' championship.id %}">settings</a>.{% endif %}</p></div>
+        </li>
+      </ol>
+    </section>
+  {% endif %}
+
+  <section class="mt-5" aria-label="Progress" data-reveal>
+    <div class="stat-grid">
+      <div class="stat"><span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-users"></use></svg></span><strong>{{ teams|length }} / {{ championship.team_count }}</strong><span>teams registered</span></div>
+      <div class="stat stat-cyan"><span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-whistle"></use></svg></span><strong>{{ completed_count }} / {{ matches|length }}</strong><span>results entered</span></div>
+      <div class="stat stat-warning"><span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-calendar"></use></svg></span><strong>{{ open_count }}</strong><span>matches to play</span></div>
+      {% if champion %}<div class="stat stat-success"><span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-trophy"></use></svg></span><strong>{{ champion.name }}</strong><span>champion</span></div>{% endif %}
+    </div>
+  </section>
+
+  <section class="card mt-6" id="teams" aria-labelledby="teams-heading" data-reveal>
+    <div class="card-title">
+      <h2 id="teams-heading">Teams{% if championship.has_groups %} and groups{% endif %}</h2>
+      {% if not has_fixtures %}
+        <div class="cluster">
+          {% if championship.has_groups and teams %}
+            <form method="post" action="{% url 'championships:groups_distribute' championship.id %}" class="inline-form" data-confirm="Redraw every group by seed? Manual group choices will be replaced.">
+              {% csrf_token %}
+              <button class="btn btn-glass btn-sm" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-grid"></use></svg>Distribute into groups</button>
+            </form>
+          {% endif %}
+          {% if places_left %}
+            <a class="btn btn-primary btn-sm" href="{% url 'championships:team_add' championship.id %}"><svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>Register teams</a>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+    {% if teams %}
+      {% if championship.has_groups %}
+        <div class="group-grid">
+          {% for group in groups %}
+            <div class="group-box">
+              <h3 class="label mb-3">{{ group.name }}</h3>
+              <ul class="team-rows">
+                {% for team in teams %}{% if team.group_id == group.pk %}{% include "championships/partials/team_row.html" %}{% endif %}{% endfor %}
+              </ul>
+            </div>
+          {% endfor %}
+        </div>
+        {% if unassigned_teams %}
+          <h3 class="label mt-5 mb-3">Not yet in a group</h3>
+          <ul class="team-rows">
+            {% for team in unassigned_teams %}{% include "championships/partials/team_row.html" %}{% endfor %}
+          </ul>
+          <p class="subtle mt-3">Unassigned teams are placed in the smallest groups automatically when fixtures are generated.</p>
+        {% endif %}
+      {% else %}
+        <ul class="team-rows">
+          {% for team in teams %}{% include "championships/partials/team_row.html" %}{% endfor %}
+        </ul>
+      {% endif %}
+      {% if has_fixtures %}<p class="subtle mt-4">Teams and groups are locked while fixtures exist. Seeds and drawing-of-lots ranks can still be edited.</p>{% endif %}
+    {% else %}
+      <div class="empty empty-sm">
+        <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-users"></use></svg></div>
+        <p>No teams yet. Register {{ championship.team_count }} teams to build the fixtures.</p>
+        <a class="btn btn-primary btn-sm" href="{% url 'championships:team_add' championship.id %}">Register teams</a>
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="card mt-6" id="fixtures" aria-labelledby="fixtures-heading" data-reveal>
+    <div class="card-title">
+      <h2 id="fixtures-heading">Matches</h2>
+      <div class="cluster">
+        {% if not has_results and championship.status != "completed" %}
+          <form method="post" action="{% url 'championships:fixtures_generate' championship.id %}" class="inline-form"{% if has_fixtures %} data-confirm="Regenerate every fixture? Manual schedule changes will be lost."{% endif %}>
+            {% csrf_token %}
+            <button class="btn {% if has_fixtures %}btn-glass{% else %}btn-primary{% endif %} btn-sm" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-sparkle"></use></svg>{% if has_fixtures %}Regenerate fixtures{% else %}Confirm teams &amp; generate fixtures{% endif %}</button>
+          </form>
+          {% if has_fixtures %}
+            <form method="post" action="{% url 'championships:fixtures_clear' championship.id %}" class="inline-form" data-confirm="Delete every fixture?">
+              {% csrf_token %}
+              <button class="btn btn-danger btn-sm" type="submit">Clear fixtures</button>
+            </form>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+    {% if has_fixtures %}
+      {% if championship.is_public %}
+        <div class="callout callout-warning mb-3"><svg class="icon" aria-hidden="true"><use href="#i-alert"></use></svg><span>This championship is public. Schedule changes and corrections appear on the public page immediately and are recorded in the history below.</span></div>
+      {% endif %}
+      <nav class="filter-tabs" aria-label="Filter matches">
+        <a href="?show=all#fixtures"{% if status_filter == "all" %} aria-current="page"{% endif %}>All</a>
+        <a href="?show=open#fixtures"{% if status_filter == "open" %} aria-current="page"{% endif %}>To play</a>
+        <a href="?show=completed#fixtures"{% if status_filter == "completed" %} aria-current="page"{% endif %}>Completed</a>
+      </nav>
+      <div class="table-wrap table-scroll" role="region" aria-label="Match management" tabindex="0">
+        <table class="table-matches">
+          <thead><tr><th scope="col">Match</th><th scope="col">Teams</th><th scope="col">Score</th><th scope="col">Kickoff · field</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+          <tbody>
+            {% for match in managed_matches %}
+              <tr id="match-{{ match.pk }}">
+                <td class="subtle">{{ match.stage_label }}</td>
+                <th scope="row"><span class="{% if not match.home_team_id %}is-tbd{% endif %}">{{ match.home_label }}</span> <span class="subtle">vs</span> <span class="{% if not match.away_team_id %}is-tbd{% endif %}">{{ match.away_label }}</span></th>
+                <td>{% if match.is_completed %}<span class="score-pill">{{ match.home_score }}–{{ match.away_score }}</span>{% if match.home_penalties is not None %} <span class="subtle">({{ match.home_penalties }}–{{ match.away_penalties }} pens)</span>{% elif match.decided_by == "extra_time" %} <span class="subtle">aet</span>{% elif match.decided_by == "organizer" %} <span class="subtle">{{ match.winner.name }} by decision</span>{% endif %}{% else %}<span class="subtle">—</span>{% endif %}</td>
+                <td>{% if match.kickoff_at %}{{ match.kickoff_at|date:"D j M, H:i" }}{% else %}<span class="subtle">TBC</span>{% endif %}{% if match.field_name %} · {{ match.field_name }}{% endif %}</td>
+                <td><span class="badge status-{{ match.status }}">{{ match.get_status_display }}</span></td>
+                <td class="actions-cell">
+                  {% if match.teams_known and championship.is_public and match.status != "cancelled" %}
+                    <a class="btn {% if match.is_completed %}btn-glass{% else %}btn-primary{% endif %} btn-sm" href="{% url 'championships:match_result' championship.id match.id %}">{% if match.is_completed %}Correct{% else %}Enter score{% endif %}</a>
+                  {% endif %}
+                  <a class="btn btn-ghost btn-sm" href="{% url 'championships:match_schedule' championship.id match.id %}" aria-label="Edit schedule for {{ match.home_label }} vs {{ match.away_label }}"><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg></a>
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="6" class="subtle">No matches in this view.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if not championship.is_public %}<p class="subtle mt-3">Publish the championship to start entering scores.</p>{% endif %}
+    {% else %}
+      <div class="empty empty-sm">
+        <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg></div>
+        <p>Once every team is registered, generate the fixtures. Groups are filled automatically by seed, and the knockout bracket is linked to the group positions.</p>
+      </div>
+    {% endif %}
+  </section>
+
+  {% if tables %}
+    <section class="card mt-6" id="standings" aria-labelledby="standings-heading" data-reveal>
+      <div class="card-title"><h2 id="standings-heading">Live standings</h2><span class="subtle">Calculated from saved results</span></div>
+      <div class="standings-grid">
+        {% for table in tables %}{% include "championships/partials/standings_table.html" with show_status=True %}{% endfor %}
+      </div>
+      {% for table in tables %}
+        {% if table.is_complete and table.unresolved_ties %}
+          <div class="callout callout-warning mt-4"><svg class="icon" aria-hidden="true"><use href="#i-alert"></use></svg>
+            <span>{{ table.group.name }}: {% for row in table.unresolved_ties %}{{ row.team.name }}{% if not forloop.last %}, {% endif %}{% endfor %} are level on every tie-breaker. Record the drawing of lots by editing each team's lots rank; the bracket fills in once the order is decided.</span>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  {% if championship.has_knockout and has_fixtures %}
+    <section class="card mt-6" id="bracket" aria-labelledby="bracket-heading" data-reveal>
+      <div class="card-title"><h2 id="bracket-heading">Bracket</h2><span class="subtle">{{ championship.get_knockout_tie_rule_display }} if level</span></div>
+      {% include "championships/partials/bracket.html" %}
+    </section>
+  {% endif %}
+
+  <section class="card mt-6" id="history" aria-labelledby="history-heading" data-reveal>
+    <div class="card-title"><h2 id="history-heading">Change history</h2><span class="subtle">Latest 25 changes</span></div>
+    {% if audit_entries %}
+      <ol class="audit-list">
+        {% for entry in audit_entries %}
+          <li class="audit-{{ entry.action }}">
+            <time datetime="{{ entry.created_at|date:'c' }}">{{ entry.created_at|date:"j M Y, H:i" }}</time>
+            <div><strong>{{ entry.get_action_display }}</strong> — {{ entry.summary }}{% if entry.note %} <span class="subtle">“{{ entry.note }}”</span>{% endif %}</div>
+            <span class="subtle">{{ entry.user.username|default:"System" }}</span>
+          </li>
+        {% endfor %}
+      </ol>
+    {% else %}
+      <p class="subtle">Fixture generation, results and corrections will be recorded here.</p>
+    {% endif %}
+  </section>
+</div>
+{% endtimezone %}
+{% endblock %}

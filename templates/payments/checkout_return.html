@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Payment status{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="card result-card">
+    {% if payment and payment.status == "succeeded" %}
+      <div class="result-icon is-success" aria-hidden="true"><svg class="icon"><use href="#i-check"></use></svg></div>
+      <h1>Payment status</h1>
+      <p class="lead">Your payment is confirmed.</p>
+    {% elif payment and payment.status == "failed" %}
+      <div class="result-icon is-failed" aria-hidden="true"><svg class="icon"><use href="#i-close"></use></svg></div>
+      <h1>Payment status</h1>
+      <p class="lead">The payment did not complete. You can try again from the event page.</p>
+    {% else %}
+      <div class="result-icon" aria-hidden="true"><svg class="icon"><use href="#i-clock"></use></svg></div>
+      <h1>Payment status</h1>
+      <p class="lead">Payment confirmation is pending. This page does not confirm payment; confirmation arrives securely from Stripe.</p>
+    {% endif %}
+    <ul class="check-list">
+      <li><span>Event</span><strong>{{ registration.event.title }}</strong></li>
+      <li><span>Registration status</span><span class="badge status-{{ registration.status }}">{{ registration.get_status_display }}</span></li>
+    </ul>
+    <div class="cluster cluster-center">
+      <a class="btn btn-primary" href="{% url 'events:detail' registration.event_id %}">Return to event</a>
+      <a class="btn btn-glass" href="{% url 'accounts:dashboard' %}">My dashboard</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

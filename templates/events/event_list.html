@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Discover events{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header class="page-head" data-reveal>
+    <p class="eyebrow">Explore</p>
+    <h1>Discover events</h1>
+    <p class="lead">Sports, parties, picnics and everything in between. Find your next plan.</p>
+  </header>
+
+  <form method="get" class="filter-bar" role="search" aria-label="Filter events">
+    <div class="field field-search">
+      <label for="filter-q">Search</label>
+      <div class="input-icon">
+        <svg class="icon" aria-hidden="true"><use href="#i-search"></use></svg>
+        <input id="filter-q" type="search" name="q" value="{{ query }}" placeholder="Event name or keyword">
+      </div>
+    </div>
+    <div class="field">
+      <label for="filter-category">Category</label>
+      <select id="filter-category" name="category">
+        <option value="">All categories</option>
+        {% for item in categories %}
+          <option value="{{ item.slug }}" {% if selected_category == item.slug %}selected{% endif %}>{{ item.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="filter-city">City</label>
+      <div class="input-icon">
+        <svg class="icon" aria-hidden="true"><use href="#i-pin"></use></svg>
+        <input id="filter-city" type="text" name="city" value="{{ city }}" placeholder="Any city">
+      </div>
+    </div>
+    <div class="filter-submit">
+      <button class="btn btn-primary btn-block" type="submit">
+        <svg class="icon" aria-hidden="true"><use href="#i-search"></use></svg>
+        Search
+      </button>
+    </div>
+  </form>
+
+  <div class="result-count cluster">
+    <span>{{ page.paginator.count }} upcoming event{{ page.paginator.count|pluralize }}</span>
+    {% if query or selected_category or city %}
+      <span class="active-filters">
+        {% if query %}<span class="badge badge-plain">“{{ query }}”</span>{% endif %}
+        {% if selected_category %}{% for item in categories %}{% if item.slug == selected_category %}<span class="badge badge-plain">{{ item.name }}</span>{% endif %}{% endfor %}{% endif %}
+        {% if city %}<span class="badge badge-plain">{{ city }}</span>{% endif %}
+        <a class="link-arrow" href="{% url 'events:list' %}">Clear filters</a>
+      </span>
+    {% endif %}
+  </div>
+
+  {% if page.object_list %}
+    <h2 class="sr-only">Results</h2>
+    <div class="grid grid-cards">
+      {% for event in page %}
+        {% include "partials/event_card.html" %}
+      {% endfor %}
+    </div>
+    {% if page.paginator.num_pages > 1 %}
+      <nav class="pagination" aria-label="Event pages">
+        {% if page.has_previous %}
+          <a class="btn btn-glass btn-sm" href="?q={{ query|urlencode }}&category={{ selected_category|urlencode }}&city={{ city|urlencode }}&page={{ page.previous_page_number }}">
+            <svg class="icon" aria-hidden="true"><use href="#i-arrow-left"></use></svg>Previous
+          </a>
+        {% endif %}
+        <span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+        {% if page.has_next %}
+          <a class="btn btn-glass btn-sm" href="?q={{ query|urlencode }}&category={{ selected_category|urlencode }}&city={{ city|urlencode }}&page={{ page.next_page_number }}">
+            Next<svg class="icon icon-arrow" aria-hidden="true"><use href="#i-arrow"></use></svg>
+          </a>
+        {% endif %}
+      </nav>
+    {% endif %}
+  {% else %}
+    <div class="empty">
+      <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-search"></use></svg></div>
+      <h2>No upcoming events match those filters.</h2>
+      <p>Try a different keyword or city, or browse everything that's coming up.</p>
+      <div class="cluster cluster-center">
+        {% if query or selected_category or city %}
+          <a class="btn btn-glass" href="{% url 'events:list' %}">Clear filters</a>
+        {% endif %}
+        <a class="btn btn-primary" href="{% url 'events:create' %}">
+          <svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>
+          Create an event
+        </a>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

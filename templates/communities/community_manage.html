@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}{{ community.name }} dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header class="page-head">
+    <div class="page-head-row">
+      <div>
+        <p class="eyebrow">Community organizer dashboard</p>
+        <h1>{{ community.name }}</h1>
+        <p class="lead">Run everything in your community from here.</p>
+      </div>
+      <div class="cluster">
+        <a class="btn btn-ghost" href="{% url 'communities:update' community.slug %}"><svg class="icon" aria-hidden="true"><use href="#i-edit"></use></svg>Edit details</a>
+        <a class="btn btn-glass" href="{% url 'communities:detail' community.slug %}"><svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg>Public page</a>
+      </div>
+    </div>
+  </header>
+
+  {% if is_organizer %}
+    <nav class="quick-actions" aria-label="Add to this community">
+      <a class="quick-action" href="{% url 'leagues:create' %}?community={{ community.pk }}"><span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-trophy"></use></svg></span>New league<svg class="icon icon-arrow" aria-hidden="true"><use href="#i-arrow"></use></svg></a>
+      <a class="quick-action" href="{% url 'championships:create' %}?community={{ community.pk }}"><span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-flag"></use></svg></span>New tournament<svg class="icon icon-arrow" aria-hidden="true"><use href="#i-arrow"></use></svg></a>
+      <a class="quick-action" href="{% url 'allstars:create' %}?community={{ community.pk }}"><span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-sparkle"></use></svg></span>New All-Star game<svg class="icon icon-arrow" aria-hidden="true"><use href="#i-arrow"></use></svg></a>
+      <a class="quick-action" href="{% url 'events:create' %}?community={{ community.pk }}"><span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-calendar"></use></svg></span>New event<svg class="icon icon-arrow" aria-hidden="true"><use href="#i-arrow"></use></svg></a>
+    </nav>
+  {% endif %}
+
+  <section class="mt-6" aria-label="Summary">
+    <div class="stat-grid">
+      <div class="stat"><strong>{{ leagues|length }}</strong><span>league{{ leagues|length|pluralize }}</span></div>
+      <div class="stat stat-cyan"><strong>{{ tournaments|length }}</strong><span>tournament{{ tournaments|length|pluralize }}</span></div>
+      <div class="stat stat-success"><strong>{{ all_star_games|length }}</strong><span>All-Star game{{ all_star_games|length|pluralize }}</span></div>
+      <div class="stat stat-warning"><strong>{{ waiting_total }}</strong><span>waiting for a team</span></div>
+    </div>
+  </section>
+
+  <div class="dash-layout mt-6">
+    <section class="card" aria-labelledby="leagues-title">
+      <div class="card-title"><h2 id="leagues-title">Leagues</h2></div>
+      <ul class="owner-list">
+        {% for league in leagues %}
+          <li class="owner-row">
+            <div>
+              <strong>{{ league.name }}</strong>
+              <span class="badge status-{{ league.status }}">{{ league.get_status_display }}</span>
+              {% if league.waiting %}<span class="badge status-pending">{{ league.waiting }} want to play</span>{% endif %}
+              <p class="muted">{{ league.team_count }} team{{ league.team_count|pluralize }}</p>
+            </div>
+            <a class="btn btn-primary btn-sm" href="{% if request.user.is_superuser %}{% url 'hub:league' league.pk %}{% else %}{% url 'leagues:manage' league.pk %}{% endif %}">Manage</a>
+          </li>
+        {% empty %}
+          <li class="muted">No leagues yet. Existing ones can be attached from their edit page.</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="card" aria-labelledby="tournaments-title">
+      <div class="card-title"><h2 id="tournaments-title">Tournaments</h2></div>
+      <ul class="owner-list">
+        {% for tournament in tournaments %}
+          <li class="owner-row">
+            <div>
+              <strong>{{ tournament.name }}</strong>
+              <span class="badge status-{{ tournament.status }}">{{ tournament.get_status_display }}</span>
+              <p class="muted">{{ tournament.team_total }} of {{ tournament.team_count }} teams registered</p>
+            </div>
+            <a class="btn btn-primary btn-sm" href="{% url 'championships:manage' tournament.pk %}">Manage</a>
+          </li>
+        {% empty %}
+          <li class="muted">No tournaments yet.</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="card" aria-labelledby="all-star-title">
+      <div class="card-title"><h2 id="all-star-title">All-Star games</h2></div>
+      <ul class="owner-list">
+        {% for game in all_star_games %}
+          <li class="owner-row">
+            <div>
+              <strong>{{ game.title }}</strong>
+              <span class="badge status-{{ game.badge_status }}">{{ game.get_status_display }}</span>
+              <p class="muted">{{ game.player_total }} player{{ game.player_total|pluralize }} registered</p>
+            </div>
+            <a class="btn btn-primary btn-sm" href="{% url 'allstars:manage' game.pk %}">Ratings &amp; teams</a>
+          </li>
+        {% empty %}
+          <li class="muted">No All-Star games yet.</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="card" aria-labelledby="events-title">
+      <div class="card-title"><h2 id="events-title">Events</h2></div>
+      <ul class="owner-list">
+        {% for event in events %}
+          <li class="owner-row">
+            <div>
+              <strong>{{ event.title }}</strong>
+              <span class="badge status-{{ event.status }}">{{ event.get_status_display }}</span>
+              <p class="muted">{{ event.starts_at|date:"j M Y H:i" }} ({{ event.timezone }})</p>
+            </div>
+            <a class="btn btn-ghost btn-sm" href="{% url 'events:detail' event.pk %}">View</a>
+          </li>
+        {% empty %}
+          <li class="muted">No events yet.</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+</div>
+{% endblock %}

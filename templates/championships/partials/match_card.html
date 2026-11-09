@@ -1,0 +1,30 @@
+<li class="match cup-match{% if match.status == 'in_progress' %} is-live{% endif %}" id="fixture-{{ match.pk }}">
+  <h4 class="sr-only">{{ match.home_label }} vs {{ match.away_label }}</h4>
+  <span class="match-team{% if not match.home_team_id %} is-tbd{% endif %}{% if match.winner_id and match.winner_id == match.home_team_id %} is-winner{% endif %}">{{ match.home_label }}</span>
+  {% if match.is_completed %}
+    <span class="match-score">{{ match.home_score }}–{{ match.away_score }}{% if match.home_penalties is not None %}<small class="pens">pens {{ match.home_penalties }}–{{ match.away_penalties }}</small>{% endif %}</span>
+  {% else %}
+    <span class="match-score is-vs">{% if match.status == "in_progress" %}Live{% else %}vs{% endif %}</span>
+  {% endif %}
+  <span class="match-team away{% if not match.away_team_id %} is-tbd{% endif %}{% if match.winner_id and match.winner_id == match.away_team_id %} is-winner{% endif %}">{{ match.away_label }}</span>
+  <div class="match-meta">
+    <span><svg class="icon" aria-hidden="true"><use href="#i-flag"></use></svg>{{ match.stage_label }}</span>
+    <span><svg class="icon" aria-hidden="true"><use href="#i-clock"></use></svg>{% if match.kickoff_at %}<time datetime="{{ match.kickoff_at|date:'c' }}">{{ match.kickoff_at|date:"D j M · H:i" }}</time>{% else %}Time to be confirmed{% endif %}</span>
+    {% if match.field_name %}<span><svg class="icon" aria-hidden="true"><use href="#i-pin"></use></svg>{{ match.field_name }}</span>{% endif %}
+    <span class="badge status-{{ match.status }}">{{ match.get_status_display }}</span>
+  </div>
+  {% if match.is_completed and match.decided_by == "extra_time" %}<p class="match-note">After extra time</p>{% endif %}
+  {% if match.is_completed and match.decided_by == "organizer" %}<p class="match-note">{{ match.winner.name }} advance by organizer decision</p>{% endif %}
+  {% if show_incidents and match.incidents.all %}
+    <ul class="incident-list">
+      {% for incident in match.incidents.all %}
+        <li class="incident incident-{{ incident.kind }}{% if incident.team_id == match.away_team_id %} is-away{% endif %}">
+          {% if incident.minute is not None %}<span class="incident-minute">{{ incident.minute }}'</span>{% endif %}
+          <span class="incident-kind">{{ incident.get_kind_display }}</span>
+          {% if incident.player_name %}<span>{{ incident.player_name }}</span>{% endif %}
+          {% if incident.assist_name %}<span class="subtle">assist {{ incident.assist_name }}</span>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</li>

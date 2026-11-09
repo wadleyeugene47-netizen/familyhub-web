@@ -1,0 +1,112 @@
+{% load static %}<!doctype html>
+<html lang="en" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>{% block title %}Host panel{% endblock %} · Host panel · {{ site.site_name }}</title>
+  <script>document.documentElement.className = document.documentElement.className.replace("no-js", "js");</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap">
+  <link rel="stylesheet" href="{% static 'gatherplay/css/gatherplay.css' %}">
+  <link rel="icon" href="{% static 'gatherplay/img/favicon.svg' %}" type="image/svg+xml">
+  <script src="{% static 'gatherplay/js/gatherplay.js' %}" defer></script>
+  {% block head %}{% endblock %}
+</head>
+<body class="panel-body">
+  {% include "partials/icons.html" %}
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  {% with url_name=request.resolver_match.url_name %}
+  <div class="panel-shell">
+    <aside class="panel-sidebar" aria-label="Host panel">
+      <a class="panel-brand" href="{% url 'hub:dashboard' %}">
+        <svg class="brand-mark" aria-hidden="true"><use href="#logo-mark"></use></svg>
+        <span>
+          <strong>{{ site.site_name }}</strong>
+          <small>Host panel</small>
+        </span>
+      </a>
+
+      <nav class="panel-nav">
+        <p class="panel-nav-label">Run the site</p>
+        <a href="{% url 'hub:dashboard' %}"{% if url_name == 'dashboard' %} aria-current="page"{% endif %}>
+          <svg class="icon" aria-hidden="true"><use href="#i-grid"></use></svg>Overview
+        </a>
+        <a href="{% url 'hub:members' %}"{% if url_name == 'members' %} aria-current="page"{% endif %}>
+          <svg class="icon" aria-hidden="true"><use href="#i-users"></use></svg>Members
+          {% if host_counts.members %}<span class="panel-count">{{ host_counts.members }}</span>{% endif %}
+        </a>
+        <a href="{% url 'hub:event_review' %}"{% if url_name == 'event_review' %} aria-current="page"{% endif %}>
+          <svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>Event approvals
+          {% if host_counts.events %}<span class="panel-count">{{ host_counts.events }}</span>{% endif %}
+        </a>
+        <a href="{% url 'hub:leagues' %}"{% if url_name == 'leagues' or url_name == 'league' %} aria-current="page"{% endif %}>
+          <svg class="icon" aria-hidden="true"><use href="#i-trophy"></use></svg>Leagues
+          {% if host_counts.players %}<span class="panel-count">{{ host_counts.players }}</span>{% endif %}
+        </a>
+        <a href="{% url 'hub:messages' %}"{% if url_name == 'messages' or url_name == 'message_thread' %} aria-current="page"{% endif %}>
+          <svg class="icon" aria-hidden="true"><use href="#i-chat"></use></svg>Messages
+          {% if host_counts.messages %}<span class="panel-count">{{ host_counts.messages }}</span>{% endif %}
+        </a>
+        <a href="{% url 'hub:phones' %}"{% if url_name == 'phones' %} aria-current="page"{% endif %}>
+          <svg class="icon" aria-hidden="true"><use href="#i-phone"></use></svg>Phone invites
+        </a>
+
+        <p class="panel-nav-label">Settings</p>
+        <a href="{% url 'hub:settings' %}"{% if url_name == 'settings' %} aria-current="page"{% endif %}>
+          <svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg>Site settings
+        </a>
+        <a href="{% url 'hub:dashboard' %}#features"{% if url_name == 'choice_list' %} aria-current="page"{% endif %}>
+          <svg class="icon" aria-hidden="true"><use href="#i-sparkle"></use></svg>Features &amp; lists
+        </a>
+        {% if request.user.is_staff %}
+          <a href="{% url 'admin:index' %}">
+            <svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>Advanced admin
+          </a>
+        {% endif %}
+      </nav>
+
+      <div class="panel-sidebar-foot">
+        <a class="btn btn-glass btn-sm btn-block" href="{% url 'home' %}">
+          <svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg>View the site
+        </a>
+        <form method="post" action="{% url 'accounts:logout' %}">
+          {% csrf_token %}
+          <button class="btn btn-ghost btn-sm btn-block" type="submit">
+            <svg class="icon" aria-hidden="true"><use href="#i-logout"></use></svg>Log out
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <div class="panel-main">
+      <header class="panel-topbar">
+        <span class="panel-tag"><svg class="icon" aria-hidden="true"><use href="#i-shield"></use></svg>Host</span>
+        <span class="muted">Signed in as {{ request.user.display_name }}</span>
+      </header>
+
+      {% if messages %}
+        <ul class="messages panel-messages" aria-live="polite">
+          {% for message in messages %}
+            <li class="alert alert-{{ message.level_tag|default:'info' }}" role="{% if message.level_tag == 'error' %}alert{% else %}status{% endif %}" data-alert>
+              <svg class="icon" aria-hidden="true"><use href="#i-{% if message.level_tag == 'success' %}check-circle{% elif message.level_tag == 'error' %}x-circle{% elif message.level_tag == 'warning' %}alert{% else %}info{% endif %}"></use></svg>
+              <span class="alert-text">{{ message }}</span>
+              <button class="alert-close" type="button" aria-label="Dismiss message" data-alert-close>
+                <svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg>
+              </button>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      <main id="main" class="panel-content" tabindex="-1">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+  {% endwith %}
+  {% block scripts %}{% endblock %}
+</body>
+</html>

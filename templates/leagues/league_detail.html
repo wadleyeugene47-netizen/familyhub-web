@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% load gatherplay %}
+
+{% block title %}{{ league.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="detail-hero cover-art theme-sports">
+    <img src="{{ "sports"|theme_photo }}" alt="" decoding="async">
+    <div class="detail-hero-shade"></div>
+    <div class="detail-hero-copy">
+      <a class="back-link" href="{% url 'leagues:list' %}"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"></use></svg>All leagues</a>
+      <div class="cluster">
+        <span class="chip">Community league</span>
+        <span class="badge status-{{ league.status }}">{{ league.get_status_display }}</span>
+      </div>
+      <h1>{{ league.name }}</h1>
+      <span class="organizer"><span class="avatar" aria-hidden="true">{{ league.organizer.display_name|first }}</span><span>{{ league.organizer.display_name }}</span></span>
+    </div>
+  </div>
+
+  {% if request.user.is_authenticated %}
+    {% if my_membership %}
+      <section class="card my-team-card mb-3" aria-labelledby="my-team-title">
+        <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-trophy"></use></svg></span>
+        <div>
+          <p class="eyebrow">You're playing</p>
+          <h2 id="my-team-title">{{ my_membership.team.name }}</h2>
+          <p class="muted">
+            {{ my_membership.get_role_display }}{% if my_membership.jersey_number is not None %} · #{{ my_membership.jersey_number }}{% endif %}
+            {% if my_membership.role == "captain" and my_membership.team.captain_fee %}
+              · You pay {{ my_membership.team.captain_fee }} {{ my_membership.team.fee_currency }} for the team:
+              {% if my_membership.team.fee_paid %}<span class="badge status-active">Paid</span>{% else %}<span class="badge status-pending">Not paid yet</span>{% endif %}
+            {% endif %}
+          </p>
+        </div>
+        <a class="btn btn-glass btn-sm" href="#team-{{ my_membership.team_id }}">See my team</a>
+      </section>
+    {% elif my_join_request.status == "pending" %}
+      <p class="callout mb-3"><svg class="icon" aria-hidden="true"><use href="#i-clock"></use></svg><span>You asked to play. The host will put you on a team soon. Until then you're a supporter: follow the games and join the chat.</span></p>
+    {% else %}
+      <section class="card join-card mb-3" aria-labelledby="join-title">
+        <div>
+          <h2 id="join-title">Want to play?</h2>
+          <p class="muted">You're a supporter right now: you can follow the games and join the chat. Ask the host for a place on a team.{% if my_join_request.status == "declined" %} Your last request wasn't accepted, but you can ask again.{% endif %}</p>
+        </div>
+        <form method="post" action="{% url 'leagues:join' league.pk %}" class="join-form">
+          {% csrf_token %}
+          <label class="sr-only" for="join-note">Note for the host</label>
+          <input id="join-note" type="text" name="note" maxlength="200" placeholder="Position or a friend to play with (optional)">
+          <button class="btn btn-primary" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>I want to play</button>
+        </form>
+      </section>
+    {% endif %}
+  {% endif %}
+
+  <div class="detail-layout">
+    <div class="stack">
+      <section class="card" aria-labelledby="standings-heading" data-reveal>
+        <div class="card-title"><h2 id="standings-heading">Standings</h2><span class="muted">Win 3 · Draw 1 · Loss 0</span></div>
+        {% include "leagues/_standings.html" %}
+      </section>
+
+      <section class="card" aria-labelledby="fixtures-heading" data-reveal>
+        <div class="card-title"><h2 id="fixtures-heading">Games and results</h2></div>
+        {% if matches %}
+          {% regroup matches by round_number as rounds %}
+          {% for round in rounds %}
+            {% if round.grouper %}<h3 class="label mt-4">Round {{ round.grouper }}</h3>{% endif %}
+            <ol class="match-list">
+              {% for match in round.list %}
+                <li class="match{% if my_membership and match.home_team_id == my_membership.team_id or my_membership and match.away_team_id == my_membership.team_id %} is-my-team{% endif %}">
+                  <h4 class="sr-only">{{ match.home_team.name }} vs {{ match.away_team.name }}</h4>
+                  <span class="match-team">{{ match.home_team.name }}</span>
+                  {% if match.status == "completed" %}
+                    <span class="match-score">{{ match.home_score }}–{{ match.away_score }}</span>
+                  {% else %}
+                    <span class="match-score is-vs">vs</span>
+                  {% endif %}
+                  <span class="match-team away">{{ match.away_team.name }}</span>
+                  <div class="match-meta">
+                    <span><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>{{ match.event.starts_at|date:"D, j M Y H:i" }} ({{ match.event.timezone }})</span>
+                    <span><svg class="icon" aria-hidden="true"><use href="#i-pin"></use></svg>{% if match.event.location.name %}{{ match.event.location.name }} · {% endif %}{{ match.event.location.city }}</span>
+                    <span class="badge status-{{ match.status }}">{{ match.get_status_display }}</span>
+                  </div>
+                </li>
+              {% endfor %}
+            </ol>
+          {% endfor %}
+        {% else %}
+          <div class="empty empty-sm">
+            <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg></div>
+            <p>Games have not been scheduled yet.</p>
+          </div>
+        {% endif %}
+      </section>
+
+      {% if request.user.is_authenticated %}
+        <section class="card" id="teams" aria-labelledby="teams-heading">
+          <div class="card-title"><h2 id="teams-heading">Teams</h2></div>
+          <div class="team-grid">
+            {% for team in teams %}
+              <article class="team-card{% if my_membership.team_id == team.pk %} is-my-team{% endif %}" id="team-{{ team.pk }}">
+                <h3>{{ team.name }}</h3>
+                {% if team.captain_fee %}
+                  <p class="muted">Captain pays {{ team.captain_fee }} {{ team.fee_currency }} · {% if team.fee_paid %}<span class="badge status-active">Paid</span>{% else %}<span class="badge status-pending">Not paid yet</span>{% endif %}</p>
+                {% endif %}
+                <ul class="roster">
+                  {% for membership in team.roster %}
+                    <li>
+                      {{ membership.user.display_name }}{% if membership.user_id == request.user.pk %} <span class="muted">(you)</span>{% endif %}
+                      {% if membership.jersey_number is not None %}<span class="muted">#{{ membership.jersey_number }}</span>{% endif %}
+                      {% if membership.role == "captain" %}<span class="badge status-active">Captain</span>{% elif membership.role == "coach" %}<span class="badge">Coach</span>{% endif %}
+                    </li>
+                  {% empty %}
+                    <li class="muted">No players yet.</li>
+                  {% endfor %}
+                </ul>
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+
+        <section class="card" id="chat" aria-labelledby="chat-heading">
+          <div class="card-title"><h2 id="chat-heading">League chat</h2></div>
+          <p class="muted">Everyone in {{ site.site_name }} can read and write here, players and supporters.</p>
+          {% url 'leagues:chat' league.pk as send_url %}
+          {% url 'leagues:chat' league.pk as poll_url %}
+          {% include "messaging/_thread.html" with empty_text="No messages yet. Start the conversation!" %}
+        </section>
+      {% else %}
+        <p class="callout"><svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg><span><a href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}">Log in</a> to see the teams and join the league chat.</span></p>
+      {% endif %}
+    </div>
+
+    <aside class="detail-aside" aria-label="League information">
+      {% if league.description %}
+        <section class="card card-sm">
+          <h2 class="label mb-3">About</h2>
+          <div class="muted">{{ league.description|linebreaks }}</div>
+        </section>
+      {% endif %}
+      {% if league.rules %}
+        <section class="card card-sm">
+          <h2 class="label mb-3">Rules</h2>
+          <div class="muted">{{ league.rules|linebreaks }}</div>
+        </section>
+      {% endif %}
+      {% if request.user.is_authenticated %}
+        <section class="card card-sm">
+          <h2 class="label mb-3">Supporters ({{ supporters|length }})</h2>
+          <p class="muted">Members who aren't playing.</p>
+          <ul class="roster">
+            {% for person in supporters %}
+              <li>{{ person.display_name }}{% if person.pk == request.user.pk %} <span class="muted">(you)</span>{% endif %}</li>
+            {% empty %}
+              <li class="muted">Everyone is on a team.</li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endif %}
+      {% if request.user.is_superuser %}
+        <a class="btn btn-glass btn-block" href="{% url 'hub:league' league.id %}">
+          <svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg>
+          Manage in host panel
+        </a>
+      {% elif league.organizer.user_id == request.user.id %}
+        <a class="btn btn-glass btn-block" href="{% url 'leagues:manage' league.id %}">
+          <svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg>
+          Manage league
+        </a>
+      {% endif %}
+    </aside>
+  </div>
+</div>
+{% endblock %}

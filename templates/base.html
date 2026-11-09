@@ -1,0 +1,185 @@
+{% load static %}<!doctype html>
+<html lang="en" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0B1020">
+  <meta name="description" content="{% block description %}{{ site.tagline }}{% endblock %}">
+  <title>{% block title %}Discover events{% endblock %} · {{ site.site_name }}</title>
+  <script>document.documentElement.className = document.documentElement.className.replace("no-js", "js");</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap">
+  <link rel="stylesheet" href="{% static 'gatherplay/css/gatherplay.css' %}">
+  <link rel="icon" href="{% static 'gatherplay/img/favicon.svg' %}" type="image/svg+xml">
+  <script src="{% static 'gatherplay/js/gatherplay.js' %}" defer></script>
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  {% include "partials/icons.html" %}
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="backdrop" aria-hidden="true">
+    <span class="orb orb-1"></span>
+    <span class="orb orb-2"></span>
+    <span class="orb orb-3"></span>
+  </div>
+
+  {% with ns=request.resolver_match.namespace url_name=request.resolver_match.url_name %}
+  <header class="site-header" data-header>
+    <div class="container nav">
+      <a class="brand" href="{% url 'home' %}" aria-label="{{ site.site_name }} home">
+        <svg class="brand-mark" aria-hidden="true"><use href="#logo-mark"></use></svg>
+        <span class="brand-name">{{ site.site_name }}</span>
+      </a>
+
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu" aria-label="Open menu" data-nav-toggle>
+        <svg class="icon icon-open" aria-hidden="true"><use href="#i-menu"></use></svg>
+        <svg class="icon icon-close" aria-hidden="true"><use href="#i-close"></use></svg>
+      </button>
+
+      <nav class="nav-menu" id="nav-menu" aria-label="Main">
+        <ul class="nav-links">
+          <li><a href="{% url 'communities:list' %}"{% if ns == 'communities' %} aria-current="page"{% endif %}>Community</a></li>
+          <li><a href="{% url 'events:list' %}"{% if ns == 'events' and url_name == 'list' or ns == 'events' and url_name == 'detail' %} aria-current="page"{% endif %}>Explore Events</a></li>
+          <li><a href="{% url 'leagues:list' %}"{% if ns == 'leagues' %} aria-current="page"{% endif %}>Sports</a></li>
+          <li><a href="{% url 'championships:list' %}"{% if ns == 'championships' %} aria-current="page"{% endif %}>Championships</a></li>
+          <li><a href="{% url 'home' %}#how-it-works">About</a></li>
+        </ul>
+        <div class="nav-actions">
+          {% if request.user.is_authenticated %}
+            <a class="btn btn-primary" href="{% url 'events:create' %}">
+              <svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>
+              Create Event
+            </a>
+            <details class="account-menu">
+              <summary aria-label="Account menu for {{ request.user.username }}">
+                <span class="avatar" aria-hidden="true">{{ request.user.username|first }}</span>
+                <span>{{ request.user.username|truncatechars:16 }}</span>
+                <svg class="icon chev" aria-hidden="true"><use href="#i-chevron"></use></svg>
+              </summary>
+              <div class="menu-panel">
+                <p class="menu-label">Account</p>
+                <a href="{% url 'accounts:dashboard' %}"><svg class="icon" aria-hidden="true"><use href="#i-user"></use></svg>My dashboard</a>
+                <a href="{% url 'accounts:password_change' %}"><svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>Change password</a>
+                {% if is_captain %}
+                  <a href="{% url 'leagues:captain' %}"><svg class="icon" aria-hidden="true"><use href="#i-whistle"></use></svg>Captain dashboard</a>
+                {% endif %}
+                {% for league in community_leagues %}
+                  <a href="{% url 'leagues:detail' league.pk %}"><svg class="icon" aria-hidden="true"><use href="#i-trophy"></use></svg>{{ league.name }}</a>
+                {% endfor %}
+                {% if not request.user.is_superuser %}
+                  <a href="{% url 'messaging:chat' %}"><svg class="icon" aria-hidden="true"><use href="#i-chat"></use></svg>Message the host{% if chat_unread %} <span class="badge status-pending">{{ chat_unread }}</span>{% endif %}</a>
+                {% endif %}
+                <p class="menu-label">Organize</p>
+                <a href="{% url 'communities:list' %}#mine"><svg class="icon" aria-hidden="true"><use href="#i-community"></use></svg>My communities</a>
+                {% if request.user.organizer_profile %}
+                  <a href="{% url 'organizers:dashboard' %}"><svg class="icon" aria-hidden="true"><use href="#i-chart"></use></svg>Organizer dashboard</a>
+                {% endif %}
+                <a href="{% url 'events:organizer_list' %}"><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>My events</a>
+                <a href="{% url 'leagues:organizer_list' %}"><svg class="icon" aria-hidden="true"><use href="#i-trophy"></use></svg>My leagues</a>
+                <a href="{% url 'championships:organizer_list' %}"><svg class="icon" aria-hidden="true"><use href="#i-flag"></use></svg>My championships</a>
+                {% if request.user.organizer_profile and "payments" in features_on %}
+                  <a href="{% url 'organizers:payment_onboarding' %}"><svg class="icon" aria-hidden="true"><use href="#i-card"></use></svg>Payment setup</a>
+                {% endif %}
+                {% if request.user.is_superuser %}
+                  <p class="menu-label">Owner</p>
+                  <a href="{% url 'hub:dashboard' %}"><svg class="icon" aria-hidden="true"><use href="#i-shield"></use></svg>Host panel{% if host_counts.total %} <span class="badge status-pending">{{ host_counts.total }}</span>{% endif %}</a>
+                {% endif %}
+                {% if request.user.is_staff %}
+                  <a href="{% url 'admin:index' %}"><svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg>Admin</a>
+                {% endif %}
+                <hr>
+                <form method="post" action="{% url 'accounts:logout' %}">
+                  {% csrf_token %}
+                  <button type="submit"><svg class="icon" aria-hidden="true"><use href="#i-logout"></use></svg>Log out</button>
+                </form>
+              </div>
+            </details>
+          {% else %}
+            <a class="btn btn-ghost" href="{% url 'accounts:login' %}">Sign In</a>
+            <a class="btn btn-glass" href="{% url 'accounts:register' %}">Get Started</a>
+            <a class="btn btn-primary" href="{% url 'events:create' %}">
+              <svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>
+              Create Event
+            </a>
+          {% endif %}
+        </div>
+      </nav>
+    </div>
+  </header>
+  {% endwith %}
+
+  {% if messages %}
+    <ul class="messages" aria-live="polite">
+      {% for message in messages %}
+        <li class="alert alert-{{ message.level_tag|default:'info' }}" role="{% if message.level_tag == 'error' %}alert{% else %}status{% endif %}" data-alert>
+          <svg class="icon" aria-hidden="true"><use href="#i-{% if message.level_tag == 'success' %}check-circle{% elif message.level_tag == 'error' %}x-circle{% elif message.level_tag == 'warning' %}alert{% else %}info{% endif %}"></use></svg>
+          <span class="alert-text">{{ message }}</span>
+          <button class="alert-close" type="button" aria-label="Dismiss message" data-alert-close>
+            <svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg>
+          </button>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <main id="main" class="site-main" tabindex="-1">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a class="brand" href="{% url 'home' %}">
+            <svg class="brand-mark" aria-hidden="true"><use href="#logo-mark"></use></svg>
+            <span class="brand-name">{{ site.site_name }}</span>
+          </a>
+          <p>Discover experiences, bring people together, and create events worth remembering.</p>
+        </div>
+        <div>
+          <h2>Explore</h2>
+          <ul>
+            <li><a href="{% url 'events:list' %}">All events</a></li>
+            <li><a href="{% url 'leagues:list' %}">Soccer leagues</a></li>
+            <li><a href="{% url 'championships:list' %}">Championships</a></li>
+            <li><a href="{% url 'communities:list' %}">Communities</a></li>
+            <li><a href="{% url 'allstars:list' %}">All-Star games</a></li>
+            <li><a href="{% url 'home' %}#categories">Categories</a></li>
+          </ul>
+        </div>
+        <div>
+          <h2>Organize</h2>
+          <ul>
+            <li><a href="{% url 'events:create' %}">Create an event</a></li>
+            <li><a href="{% url 'leagues:create' %}">Start a league</a></li>
+            <li><a href="{% url 'championships:create' %}">Run a championship</a></li>
+            <li><a href="{% url 'communities:create' %}">Start a community</a></li>
+            <li><a href="{% url 'organizers:dashboard' %}">Organizer dashboard</a></li>
+          </ul>
+        </div>
+        <div>
+          <h2>Account</h2>
+          <ul>
+            {% if request.user.is_authenticated %}
+              <li><a href="{% url 'accounts:dashboard' %}">My dashboard</a></li>
+              <li><a href="{% url 'events:organizer_list' %}">My events</a></li>
+            {% else %}
+              <li><a href="{% url 'accounts:login' %}">Sign in</a></li>
+              <li><a href="{% url 'accounts:register' %}">Create account</a></li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; {% now "Y" %} {{ site.site_name }}</span>
+        <span class="cluster">
+          {% if site.terms_text %}<a href="{% url 'terms' %}">Terms</a>{% endif %}
+          {% if site.privacy_text %}<a href="{% url 'privacy' %}">Privacy</a>{% endif %}
+          {% if site.support_email %}<a href="mailto:{{ site.support_email }}">Support</a>{% endif %}
+          <span>Made for bringing people together.</span>
+        </span>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

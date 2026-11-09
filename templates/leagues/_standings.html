@@ -1,0 +1,17 @@
+{% if standings %}
+  <div class="table-wrap">
+    <table class="table-standings">
+      <thead><tr><th scope="col">Team</th><th scope="col"><abbr title="Played">P</abbr></th><th scope="col"><abbr title="Won">W</abbr></th><th scope="col"><abbr title="Drawn">D</abbr></th><th scope="col"><abbr title="Lost">L</abbr></th><th scope="col"><abbr title="Goals for">GF</abbr></th><th scope="col"><abbr title="Goals against">GA</abbr></th><th scope="col"><abbr title="Goal difference">GD</abbr></th><th scope="col"><abbr title="Points">Pts</abbr></th></tr></thead>
+      <tbody>
+        {% for row in standings %}
+          <tr{% if my_membership and row.team.pk == my_membership.team_id %} class="is-my-team"{% endif %}><th scope="row"><span class="rank">{{ forloop.counter }}</span>{{ row.team.name }}</th><td>{{ row.played }}</td><td>{{ row.won }}</td><td>{{ row.drawn }}</td><td>{{ row.lost }}</td><td>{{ row.goals_for }}</td><td>{{ row.goals_against }}</td><td>{{ row.goal_difference }}</td><td>{{ row.points }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="empty empty-sm">
+    <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-chart"></use></svg></div>
+    <p>The table will appear when teams are added.</p>
+  </div>
+{% endif %}

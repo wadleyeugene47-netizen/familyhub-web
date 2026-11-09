@@ -1,0 +1,20 @@
+{% load static %}
+<div class="chat" data-chat data-poll-url="{{ poll_url }}">
+  <ol class="chat-log" data-chat-log aria-live="polite" aria-label="Messages">
+    {% for message in chat_messages %}
+      <li class="chat-msg{% if message.sender_id == request.user.pk %} is-mine{% endif %}" data-id="{{ message.pk }}">
+        <p class="chat-bubble">{{ message.body }}</p>
+        <span class="chat-meta">{% if message.sender_id != request.user.pk %}{{ message.sender.get_full_name|default:message.sender.username }} · {% endif %}{{ message.created_at|date:"d M H:i" }}</span>
+      </li>
+    {% empty %}
+      <li class="chat-empty muted" data-chat-empty>{{ empty_text }}</li>
+    {% endfor %}
+  </ol>
+  <form class="chat-form" method="post" action="{{ send_url }}" data-chat-form>
+    {% csrf_token %}
+    <label class="sr-only" for="chat-body">Message</label>
+    <textarea id="chat-body" name="body" rows="2" maxlength="2000" required placeholder="Write a message…"></textarea>
+    <button class="btn btn-primary" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-send"></use></svg>Send</button>
+  </form>
+</div>
+<script src="{% static 'gatherplay/js/chat.js' %}" defer></script>

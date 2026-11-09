@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% load tz %}
+
+{% block title %}{{ game.title }} teams{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header class="page-head">
+    <div class="page-head-row">
+      <div>
+        <a class="back-link" href="{% url 'communities:manage' game.community.slug %}"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"></use></svg>{{ game.community.name }} dashboard</a>
+        <p class="eyebrow">All-Star registration and balancer</p>
+        <h1>{{ game.title }} <span class="badge status-{{ game.badge_status }}">{{ game.get_status_display }}</span></h1>
+        <p class="lead">{{ game.starts_at|timezone:game.timezone|date:"D, j M Y H:i" }} ({{ game.timezone }})</p>
+      </div>
+      <div class="cluster">
+        {% if can_edit %}<a class="btn btn-ghost" href="{% url 'allstars:update' game.pk %}"><svg class="icon" aria-hidden="true"><use href="#i-edit"></use></svg>Edit</a>{% endif %}
+        {% if game.status != "draft" and game.status != "cancelled" %}<a class="btn btn-glass" href="{% url 'allstars:detail' game.pk %}"><svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg>Player page</a>{% endif %}
+        <form method="post" action="{% url 'allstars:status' game.pk %}" class="cluster">
+          {% csrf_token %}
+          {% if game.status == "draft" %}
+            <button class="btn btn-primary" name="action" value="open" type="submit">Open registration</button>
+          {% elif game.status == "open" %}
+            <button class="btn btn-primary" name="action" value="close" type="submit">Close registration</button>
+          {% elif game.status == "closed" %}
+            <button class="btn btn-ghost" name="action" value="open" type="submit">Reopen registration</button>
+            <button class="btn btn-primary" name="action" value="publish" type="submit">Announce teams</button>
+          {% elif game.status == "published" %}
+            <button class="btn btn-ghost" name="action" value="unpublish" type="submit">Take back teams</button>
+          {% endif %}
+        </form>
+      </div>
+    </div>
+  </header>
+
+  <div class="stat-grid">
+    <div class="stat"><strong>{{ registrations|length }}</strong><span>player{{ registrations|length|pluralize }} registered</span></div>
+    <div class="stat stat-warning"><strong>{{ unrated_count }}</strong><span>still need a rating</span></div>
+    <div class="stat stat-cyan"><strong>{{ game.team_count }}</strong><span>teams</span></div>
+    <div class="stat stat-success"><strong>{% if spread is None %}-{% else %}{{ spread }}{% endif %}</strong><span>rating gap between teams</span></div>
+  </div>
+
+  <section class="card mt-6" aria-labelledby="players-title">
+    <div class="card-title"><h2 id="players-title">Players and ratings</h2><span class="muted">Ratings are private. Players never see them.</span></div>
+    {% if registrations %}
+      <form method="post" action="{% url 'allstars:ratings' game.pk %}" id="ratings-form">{% csrf_token %}</form>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Player</th><th scope="col">Position</th><th scope="col">Gender</th><th scope="col">Note</th><th scope="col">Rating (1-5)</th>{% if can_edit %}<th scope="col"><span class="sr-only">Remove</span></th>{% endif %}</tr></thead>
+          <tbody>
+            {% for registration in registrations %}
+              <tr>
+                <th scope="row">{{ registration.user.get_full_name|default:registration.user.username }}</th>
+                <td>{{ registration.position_label }}</td>
+                <td>{{ registration.gender_label }}</td>
+                <td>{{ registration.note }}</td>
+                <td>
+                  {% if can_edit %}
+                    <label class="sr-only" for="rating-{{ registration.pk }}">Rating for {{ registration.user.username }}</label>
+                    <select id="rating-{{ registration.pk }}" name="rating_{{ registration.pk }}" form="ratings-form">
+                      <option value="">Not rated</option>
+                      {% for option in rating_options %}<option value="{{ option }}"{% if registration.skill_rating == option %} selected{% endif %}>{{ option }}</option>{% endfor %}
+                    </select>
+                  {% else %}
+                    {{ registration.skill_rating|default_if_none:"-" }}
+                  {% endif %}
+                </td>
+                {% if can_edit %}
+                  <td>
+                    <form method="post" action="{% url 'allstars:player_remove' game.pk registration.pk %}" data-confirm="Remove this player from the game?">
+                      {% csrf_token %}
+                      <button class="btn btn-ghost btn-sm" type="submit">Remove</button>
+                    </form>
+                  </td>
+                {% endif %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if can_edit %}
+        <div class="form-actions"><button class="btn btn-primary" type="submit" form="ratings-form"><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>Save ratings</button></div>
+      {% endif %}
+    {% else %}
+      <p class="muted">Nobody has registered yet.</p>
+    {% endif %}
+  </section>
+
+  <section class="card mt-6" aria-labelledby="balancer-title">
+    <div class="card-title"><h2 id="balancer-title">Teams</h2></div>
+    <p class="muted">The balancer makes teams the same size, spreads each position evenly, then brings the rating totals as close as it can.</p>
+    {% if game.status == "closed" %}
+      <form method="post" action="{% url 'allstars:balance' game.pk %}" {% if teams %}data-confirm="Balance again? This replaces the current teams."{% endif %}>
+        {% csrf_token %}
+        <button class="btn btn-primary" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-sparkle"></use></svg>{% if teams %}Balance again{% else %}Balance teams{% endif %}</button>
+      </form>
+    {% elif game.status == "draft" or game.status == "open" %}
+      <p class="callout callout-warning mt-3"><svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg><span>Close registration first, so everyone who signed up is included.</span></p>
+    {% endif %}
+    {% if unassigned_count %}
+      <p class="callout callout-warning mt-3"><svg class="icon" aria-hidden="true"><use href="#i-alert"></use></svg><span>{{ unassigned_count }} player{{ unassigned_count|pluralize }} without a team. Balance again or move them by hand.</span></p>
+    {% endif %}
+
+    {% if teams %}
+      <div class="grid grid-cards mt-4">
+        {% for team in teams %}
+          <div class="card" id="team-{{ team.pk }}">
+            {% if game.status == "closed" %}
+              <form method="post" action="{% url 'allstars:team_rename' game.pk team.pk %}" class="cluster">
+                {% csrf_token %}
+                <label class="sr-only" for="name-{{ team.pk }}">Team name</label>
+                <input id="name-{{ team.pk }}" type="text" name="name" maxlength="80" value="{{ team.name }}" required>
+                <button class="btn btn-ghost btn-sm" type="submit">Rename</button>
+              </form>
+            {% else %}
+              <h3>{{ team.name }}</h3>
+            {% endif %}
+            <p class="muted">Rating total {{ team.total }} · {{ team.players|length }} player{{ team.players|length|pluralize }}{% for label, count in team.position_counts %} · {{ count }} {{ label }}{% endfor %}</p>
+            <ul class="owner-list">
+              {% for player in team.players %}
+                <li class="owner-row">
+                  <div><strong>{{ player.user.get_full_name|default:player.user.username }}</strong><p class="muted">{{ player.position_label }} · rating {{ player.skill_rating|default_if_none:"-" }}</p></div>
+                  {% if game.status == "closed" %}
+                    <form method="post" action="{% url 'allstars:player_move' game.pk player.pk %}" class="cluster">
+                      {% csrf_token %}
+                      <label class="sr-only" for="move-{{ player.pk }}">Move {{ player.user.username }} to</label>
+                      <select id="move-{{ player.pk }}" name="team">
+                        {% for option in teams %}<option value="{{ option.pk }}"{% if option.pk == team.pk %} selected{% endif %}>{{ option.name }}</option>{% endfor %}
+                      </select>
+                      <button class="btn btn-ghost btn-sm" type="submit">Move</button>
+                    </form>
+                  {% endif %}
+                </li>
+              {% empty %}
+                <li class="muted">No players.</li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </section>
+
+  {% if game.status != "cancelled" %}
+    <form method="post" action="{% url 'allstars:status' game.pk %}" class="mt-6 text-center" data-confirm="Cancel this All-Star game?">
+      {% csrf_token %}
+      <button class="btn btn-ghost" name="action" value="cancel" type="submit">Cancel this game</button>
+    </form>
+  {% endif %}
+</div>
+<script>
+  document.querySelectorAll("form[data-confirm]").forEach(function (form) {
+    form.addEventListener("submit", function (event) {
+      if (!window.confirm(form.dataset.confirm)) event.preventDefault();
+    });
+  });
+</script>
+{% endblock %}

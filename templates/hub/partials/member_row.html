@@ -1,0 +1,25 @@
+<li class="owner-row">
+  <div>
+    <strong>{{ member.display_name }}</strong>
+    <span class="muted">@{{ member.username }}</span>
+    {% if member.pre_approval %}<span class="badge status-active">Joined with a pre-approved number</span>{% endif %}
+    <p class="muted">{{ member.email }} · {{ member.phone|default:"no phone" }} · signed up {{ member.date_joined|date:"j M Y H:i" }}</p>
+  </div>
+  <div class="cluster">
+    <a class="btn btn-glass btn-sm" href="{% url 'hub:message_thread' member.pk %}"><svg class="icon" aria-hidden="true"><use href="#i-chat"></use></svg>Message</a>
+    {% if decline %}
+      <form method="post" action="{% url 'hub:member_decide' member.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="decision" value="reject">
+        <button class="btn btn-ghost btn-sm" type="submit">{{ decline_label|default:"Decline" }}</button>
+      </form>
+    {% endif %}
+    {% if accept %}
+      <form method="post" action="{% url 'hub:member_decide' member.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="decision" value="approve">
+        <button class="btn btn-primary btn-sm" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>Accept</button>
+      </form>
+    {% endif %}
+  </div>
+</li>

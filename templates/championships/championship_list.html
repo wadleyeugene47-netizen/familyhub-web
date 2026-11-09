@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Soccer championships{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header class="page-head" data-reveal>
+    <div class="page-head-row">
+      <div>
+        <p class="eyebrow">Sports</p>
+        <h1>Soccer championships</h1>
+        <p class="lead">Group tables, knockout brackets and live results from tournaments near you.</p>
+      </div>
+      <a class="btn btn-glass" href="{% url 'championships:create' %}">
+        <svg class="icon" aria-hidden="true"><use href="#i-trophy"></use></svg>
+        Run a championship
+      </a>
+    </div>
+  </header>
+
+  {% if championships %}
+    <div class="grid grid-cards">
+      {% for championship in championships %}
+        <article class="league-card theme-sports" data-tilt data-reveal style="--i: {{ forloop.counter0 }}">
+          <div class="league-card-top">
+            <span class="cat-icon" aria-hidden="true"><svg class="icon"><use href="#i-trophy"></use></svg></span>
+            <span class="badge status-{{ championship.status }}">{{ championship.get_status_display }}</span>
+          </div>
+          <div>
+            <h2><a href="{% url 'championships:detail' championship.id %}">{{ championship.name }}</a></h2>
+            <p class="muted">{{ championship.get_format_display }} · {{ championship.team_count }} teams{% if championship.location %} · {{ championship.location.city }}{% endif %}</p>
+          </div>
+          <div class="event-foot">
+            <span class="organizer"><span class="avatar" aria-hidden="true">{{ championship.organizer.display_name|first }}</span><span>{{ championship.organizer.display_name }}</span></span>
+            <span class="link-arrow" aria-hidden="true">Follow <svg class="icon icon-arrow"><use href="#i-arrow"></use></svg></span>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty">
+      <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-trophy"></use></svg></div>
+      <h2>No championships are running right now.</h2>
+      <p>Organizing a tournament? Set the format, add teams and we'll handle fixtures, standings and the bracket.</p>
+      <a class="btn btn-primary" href="{% url 'championships:create' %}"><svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>Create a championship</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

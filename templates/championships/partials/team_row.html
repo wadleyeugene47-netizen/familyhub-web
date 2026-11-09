@@ -1,0 +1,14 @@
+<li class="team-row">
+  <span class="avatar team-avatar" aria-hidden="true">{{ team.short_name|default:team.name|first }}</span>
+  <span class="team-row-name">{{ team.name }}{% if team.short_name %} <span class="subtle">({{ team.short_name }})</span>{% endif %}</span>
+  {% if team.seed %}<span class="chip chip-seed" title="Seed">#{{ team.seed }}</span>{% endif %}
+  <span class="team-row-actions">
+    <a class="btn btn-ghost btn-sm" href="{% url 'championships:team_update' championship.id team.id %}" aria-label="Edit {{ team.name }}"><svg class="icon" aria-hidden="true"><use href="#i-edit"></use></svg></a>
+    {% if not has_fixtures %}
+      <form method="post" action="{% url 'championships:team_delete' championship.id team.id %}" class="inline-form" data-confirm="Remove {{ team.name }}?">
+        {% csrf_token %}
+        <button class="btn btn-ghost btn-sm" type="submit" aria-label="Remove {{ team.name }}"><svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
+      </form>
+    {% endif %}
+  </span>
+</li>

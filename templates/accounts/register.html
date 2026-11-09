@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Create account{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="auth-wrap">
+    <div class="auth-art cover-art theme-sports" aria-hidden="true">
+      <svg class="icon cover-icon"><use href="#i-users"></use></svg>
+      <div class="auth-art-copy">
+        <h2>Your people are out there.</h2>
+        <p>Join events, play in leagues, or host your own. One account does it all.</p>
+      </div>
+    </div>
+
+    <div class="card auth-card">
+      <p class="eyebrow">Get started</p>
+      <h1>Create your account</h1>
+      <p class="muted">It only takes a minute.</p>
+      <form method="post" class="mt-4">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {% for field in form %}
+          {% include "partials/field.html" %}
+        {% endfor %}
+        <button class="btn btn-primary btn-lg btn-block mt-3" type="submit">Create account</button>
+        {% if site.terms_text or site.privacy_text %}
+          <p class="muted mt-3">By creating an account you agree to the{% if site.terms_text %} <a href="{% url 'terms' %}">Terms of service</a>{% endif %}{% if site.terms_text and site.privacy_text %} and the{% endif %}{% if site.privacy_text %} <a href="{% url 'privacy' %}">Privacy policy</a>{% endif %}.</p>
+        {% endif %}
+      </form>
+      <p class="auth-switch">Already registered? <a href="{% url 'accounts:login' %}">Log in</a></p>
+    </div>
+  </div>
+</div>
+{% endblock %}

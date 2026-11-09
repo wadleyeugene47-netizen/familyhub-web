@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Page not found{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="empty">
+    <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-search"></use></svg></div>
+    <h1>We can't find that page.</h1>
+    <p>It may have moved, or you may need to sign in with a different account.</p>
+    <a class="btn btn-primary" href="{% url 'home' %}">Back to the home page</a>
+  </div>
+</div>
+{% endblock %}

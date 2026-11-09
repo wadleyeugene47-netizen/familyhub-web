@@ -1,0 +1,291 @@
+{% extends "hub/panel_base.html" %}
+
+{% block title %}{{ league.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header class="page-head">
+    <div class="page-head-row">
+      <div>
+        <a class="back-link" href="{% url 'hub:leagues' %}"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"></use></svg>Leagues</a>
+        <p class="eyebrow">League</p>
+        <h1>{{ league.name }} <span class="badge status-{{ league.status }}">{{ league.get_status_display }}</span></h1>
+      </div>
+      <div class="cluster">
+        {% if league.status == "draft" %}
+          <form method="post" action="{% url 'hub:league_start' league.pk %}">
+            {% csrf_token %}
+            <button class="btn btn-primary" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>Start league</button>
+          </form>
+        {% else %}
+          <a class="btn btn-glass" href="{% url 'leagues:detail' league.pk %}"><svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg>Member page</a>
+        {% endif %}
+      </div>
+    </div>
+    {% if league.status == "draft" %}
+      <p class="callout callout-warning mt-3"><svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg><span>Only you can see this league until you press <strong>Start league</strong>. Members will then see it, their teams and the chat.</span></p>
+    {% endif %}
+  </header>
+
+  <nav class="cluster mb-3" aria-label="Sections">
+    <a class="chip" href="#table">Standings</a>
+    <a class="chip" href="#games">Games &amp; scores</a>
+    <a class="chip" href="#teams">Teams &amp; captain fees</a>
+    <a class="chip" href="#requests">Want to play{% if join_requests %} ({{ join_requests|length }}){% endif %}</a>
+    <a class="chip" href="#players">Add players</a>
+    <a class="chip" href="#chat">Chat</a>
+    <a class="chip" href="#details">League details</a>
+  </nav>
+
+  <section class="card" id="table" aria-labelledby="table-title">
+    <div class="card-title"><h2 id="table-title">Standings</h2><span class="muted">Win 3 pts · Draw 1 · Loss 0</span></div>
+    {% include "leagues/_standings.html" %}
+  </section>
+
+  <section class="card mt-6" id="games" aria-labelledby="games-title">
+    <div class="card-title"><h2 id="games-title">Games &amp; scores</h2></div>
+    <p class="muted">Type the goals and press Save. You can correct a score at any time.</p>
+    {% regroup matches by round_number as rounds %}
+    {% for round in rounds %}
+      <h3 class="label mt-4">{% if round.grouper %}Round {{ round.grouper }}{% else %}Other games{% endif %}</h3>
+      <ul class="owner-list">
+        {% for match in round.list %}
+          <li class="owner-row score-row" id="match-{{ match.pk }}">
+            <div>
+              <strong>{{ match.home_team.name }} vs {{ match.away_team.name }}</strong>
+              <span class="badge status-{{ match.status }}">{{ match.get_status_display }}</span>
+              <p class="muted">{{ match.event.starts_at|date:"D, j M Y H:i" }} ({{ match.event.timezone }})</p>
+            </div>
+            {% if match.status != "cancelled" %}
+              <div class="cluster">
+                <form method="post" action="{% url 'hub:league_score' league.pk match.pk %}" class="score-form">
+                  {% csrf_token %}
+                  <label class="sr-only" for="home-{{ match.pk }}">Goals for {{ match.home_team.name }}</label>
+                  <input id="home-{{ match.pk }}" type="number" name="home_score" min="0" max="99" required value="{{ match.home_score|default_if_none:'' }}">
+                  <span aria-hidden="true">–</span>
+                  <label class="sr-only" for="away-{{ match.pk }}">Goals for {{ match.away_team.name }}</label>
+                  <input id="away-{{ match.pk }}" type="number" name="away_score" min="0" max="99" required value="{{ match.away_score|default_if_none:'' }}">
+                  <button class="btn btn-primary btn-sm" type="submit">Save</button>
+                </form>
+                {% if match.status == "scheduled" %}
+                  <form method="post" action="{% url 'hub:league_match_cancel' league.pk match.pk %}" data-confirm="Cancel this game?">
+                    {% csrf_token %}
+                    <button class="btn btn-ghost btn-sm" type="submit">Cancel game</button>
+                  </form>
+                {% endif %}
+              </div>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% empty %}
+      <p class="muted">No games yet. Create the first round below.</p>
+    {% endfor %}
+
+    <form method="post" action="{% url 'hub:league_round' league.pk %}" class="form-card mt-6">
+      {% csrf_token %}
+      <h3>Create the next round</h3>
+      <p class="muted">Pairs the teams automatically so that, over the rounds, every team plays every other team. Then it starts again with home and away swapped.</p>
+      {{ round_form.non_field_errors }}
+      <div class="form-grid">
+        {% include "partials/field.html" with field=round_form.first_kickoff %}
+        {% include "partials/field.html" with field=round_form.minutes_per_game %}
+        {% include "partials/field.html" with field=round_form.venue_name %}
+        {% include "partials/field.html" with field=round_form.address_line %}
+        {% include "partials/field.html" with field=round_form.city %}
+        {% include "partials/field.html" with field=round_form.country_code %}
+        {% include "partials/field.html" with field=round_form.timezone %}
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>Create next round</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card mt-6" id="teams" aria-labelledby="teams-title">
+    <div class="card-title"><h2 id="teams-title">Teams &amp; captain fees</h2></div>
+    <div class="team-grid">
+      {% for team in teams %}
+        <article class="team-card" id="team-{{ team.pk }}">
+          <form method="post" action="{% url 'hub:league_team_edit' league.pk team.pk %}">
+            {% csrf_token %}
+            {{ team.form.non_field_errors }}
+            <div class="form-grid">
+              {% include "partials/field.html" with field=team.form.name %}
+              {% include "partials/field.html" with field=team.form.short_name %}
+              {% include "partials/field.html" with field=team.form.captain_fee %}
+              {% include "partials/field.html" with field=team.form.fee_currency %}
+            </div>
+            <label class="check-field"><input type="checkbox" name="{{ team.form.fee_paid.html_name }}"{% if team.form.fee_paid.value %} checked{% endif %}> Captain has paid</label>
+            <div class="form-actions">
+              <button class="btn btn-primary btn-sm" type="submit">Save team</button>
+            </div>
+          </form>
+
+          <h3 class="label mt-4">Players ({{ team.roster|length }})</h3>
+          <ul class="owner-list">
+            {% for membership in team.roster %}
+              <li class="owner-row">
+                <div>
+                  <strong>{{ membership.user.display_name }}</strong>
+                  {% if membership.jersey_number is not None %}<span class="muted">#{{ membership.jersey_number }}</span>{% endif %}
+                  {% if membership.role == "captain" %}<span class="badge status-active">Captain</span>{% elif membership.role == "coach" %}<span class="badge">Coach</span>{% endif %}
+                </div>
+                <div class="cluster">
+                  {% if membership.role != "captain" %}
+                    <form method="post" action="{% url 'hub:league_player_captain' league.pk membership.pk %}">
+                      {% csrf_token %}
+                      <button class="btn btn-ghost btn-sm" type="submit">Make captain</button>
+                    </form>
+                  {% endif %}
+                  <form method="post" action="{% url 'hub:league_player_remove' league.pk membership.pk %}">
+                    {% csrf_token %}
+                    <button class="btn btn-ghost btn-sm" type="submit">Remove</button>
+                  </form>
+                </div>
+              </li>
+            {% empty %}
+              <li class="muted">No players yet.</li>
+            {% endfor %}
+          </ul>
+          <form method="post" action="{% url 'hub:league_team_delete' league.pk team.pk %}" class="mt-3" data-confirm="Delete {{ team.name }}?">
+            {% csrf_token %}
+            <button class="btn btn-ghost btn-sm" type="submit">Delete team</button>
+          </form>
+        </article>
+      {% empty %}
+        <p class="muted">No teams yet.</p>
+      {% endfor %}
+    </div>
+
+    <form method="post" action="{% url 'hub:league_team_add' league.pk %}" class="form-card mt-6">
+      {% csrf_token %}
+      <h3>Add a team</h3>
+      {{ new_team_form.non_field_errors }}
+      <div class="form-grid">
+        {% include "partials/field.html" with field=new_team_form.name %}
+        {% include "partials/field.html" with field=new_team_form.short_name %}
+        {% include "partials/field.html" with field=new_team_form.captain_fee %}
+        {% include "partials/field.html" with field=new_team_form.fee_currency %}
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>Add team</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card mt-6" id="requests" aria-labelledby="requests-title">
+    <div class="card-title"><h2 id="requests-title">Want to play{% if join_requests %} <span class="badge status-pending">{{ join_requests|length }}</span>{% endif %}</h2></div>
+    <ul class="owner-list">
+      {% for join_request in join_requests %}
+        <li class="owner-row">
+          <div>
+            <strong>{{ join_request.user.display_name }}</strong>
+            <span class="muted">asked {{ join_request.created_at|timesince }} ago</span>
+            {% if join_request.note %}<p>&ldquo;{{ join_request.note }}&rdquo;</p>{% endif %}
+          </div>
+          <div class="cluster">
+            {% if teams %}
+              <form method="post" action="{% url 'hub:league_join_decide' league.pk join_request.pk %}" class="cluster">
+                {% csrf_token %}
+                <label class="sr-only" for="req-team-{{ join_request.pk }}">Team for {{ join_request.user.display_name }}</label>
+                <select id="req-team-{{ join_request.pk }}" name="team" required>
+                  <option value="">Choose a team</option>
+                  {% for team in teams %}<option value="{{ team.pk }}">{{ team.name }} ({{ team.roster|length }})</option>{% endfor %}
+                </select>
+                <label class="sr-only" for="req-role-{{ join_request.pk }}">Role</label>
+                <select id="req-role-{{ join_request.pk }}" name="role">
+                  <option value="player">Player</option>
+                  <option value="captain">Captain</option>
+                  <option value="coach">Coach</option>
+                </select>
+                <button class="btn btn-primary btn-sm" type="submit">Add to team</button>
+              </form>
+            {% else %}
+              <span class="muted">Add a team first</span>
+            {% endif %}
+            <form method="post" action="{% url 'hub:league_join_decide' league.pk join_request.pk %}">
+              {% csrf_token %}
+              <input type="hidden" name="decision" value="decline">
+              <button class="btn btn-ghost btn-sm" type="submit">Decline</button>
+            </form>
+          </div>
+        </li>
+      {% empty %}
+        <li class="muted">Nobody is waiting. Members ask with the "I want to play" button on the league page.</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="card mt-6" id="players" aria-labelledby="players-title">
+    <div class="card-title"><h2 id="players-title">Put a member on a team</h2></div>
+    {% if teams %}
+      <p class="muted">Only members you accepted appear here. Members not on a team still see the league and the chat as supporters.</p>
+      <form method="post" action="{% url 'hub:league_player_add' league.pk %}">
+        {% csrf_token %}
+        {{ player_form.non_field_errors }}
+        <div class="form-grid">
+          {% include "partials/field.html" with field=player_form.user %}
+          {% include "partials/field.html" with field=player_form.team %}
+          {% include "partials/field.html" with field=player_form.role %}
+          {% include "partials/field.html" with field=player_form.jersey_number %}
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>Add to team</button>
+        </div>
+      </form>
+    {% else %}
+      <p class="muted">Add a team first.</p>
+    {% endif %}
+  </section>
+
+  <section class="card mt-6" id="chat" aria-labelledby="chat-title">
+    <div class="card-title"><h2 id="chat-title">League chat</h2>{% if league.status != "draft" %}<a href="{% url 'leagues:detail' league.pk %}#chat">Open the chat</a>{% endif %}</div>
+    <p class="muted">The latest messages. Delete anything that shouldn't be there.</p>
+    <ul class="owner-list">
+      {% for message in chat_messages %}
+        <li class="owner-row">
+          <div>
+            <strong>{{ message.sender.display_name }}</strong>
+            <span class="muted">{{ message.created_at|date:"d M H:i" }}</span>
+            <p>{{ message.body }}</p>
+          </div>
+          <form method="post" action="{% url 'hub:league_chat_delete' league.pk message.pk %}">
+            {% csrf_token %}
+            <button class="btn btn-ghost btn-sm" type="submit">Delete</button>
+          </form>
+        </li>
+      {% empty %}
+        <li class="muted">No messages yet.</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <form method="post" action="{% url 'hub:league_edit' league.pk %}" class="card form-card mt-6" id="details">
+    {% csrf_token %}
+    <div class="card-title"><h2>League details</h2></div>
+    {{ league_form.non_field_errors }}
+    <div class="form-grid">
+      {% include "partials/field.html" with field=league_form.name span=True %}
+      {% include "partials/field.html" with field=league_form.community span=True %}
+      {% include "partials/field.html" with field=league_form.starts_on %}
+      {% include "partials/field.html" with field=league_form.ends_on %}
+      {% include "partials/field.html" with field=league_form.description span=True %}
+      {% include "partials/field.html" with field=league_form.rules span=True %}
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>Save details</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll("form[data-confirm]").forEach(function (form) {
+    form.addEventListener("submit", function (event) {
+      if (!window.confirm(form.dataset.confirm)) event.preventDefault();
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Your leagues{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header class="page-head">
+    <div class="page-head-row">
+      <div>
+        <p class="eyebrow">Organizer</p>
+        <h1>Your soccer leagues</h1>
+        <p class="lead">Manage teams, fixtures and results for every league you run.</p>
+      </div>
+      <a class="btn btn-primary" href="{% url 'leagues:create' %}">
+        <svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>
+        Create league
+      </a>
+    </div>
+  </header>
+
+  {% if leagues %}
+    <ul class="row-list">
+      {% for league in leagues %}
+        <li class="row-item" data-reveal style="--i: {{ forloop.counter0 }}">
+          <div class="row-thumb cover-art theme-sports" aria-hidden="true">
+            <svg class="icon cover-icon"><use href="#i-trophy"></use></svg>
+          </div>
+          <div class="row-main">
+            <h2><a href="{% url 'leagues:manage' league.id %}">{{ league.name }}</a></h2>
+            <p>{{ league.teams.count }} team{{ league.teams.count|pluralize }}</p>
+          </div>
+          <div class="row-side">
+            <span class="badge status-{{ league.status }}">{{ league.get_status_display }}</span>
+            <a class="btn btn-glass btn-sm" href="{% url 'leagues:manage' league.id %}">
+              <svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg>
+              Manage
+            </a>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="empty">
+      <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-trophy"></use></svg></div>
+      <h2>You have not created any leagues yet.</h2>
+      <p>Create a league, add your teams and schedule fixtures. Standings update as you record results.</p>
+      <a class="btn btn-primary" href="{% url 'leagues:create' %}">
+        <svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>
+        Create your first league
+      </a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

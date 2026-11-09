@@ -1,0 +1,11 @@
+{{ form.non_field_errors }}
+{% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+<div class="form-grid">
+  {% for field in form.visible_fields %}
+    {% if field.widget_type == 'textarea' %}
+      {% include "partials/field.html" with span=True %}
+    {% else %}
+      {% include "partials/field.html" with span=False %}
+    {% endif %}
+  {% endfor %}
+</div>

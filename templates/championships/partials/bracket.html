@@ -1,0 +1,35 @@
+{% if bracket_rounds %}
+  <div class="bracket-scroll" role="region" aria-label="Knockout bracket" tabindex="0">
+    <ol class="bracket" style="--rounds: {{ bracket_rounds|length }}">
+      {% for round in bracket_rounds %}
+        <li class="bracket-round{% if round.code == 'final' %} is-final{% endif %}">
+          <h3 class="bracket-round-title">{{ round.label }}</h3>
+          <div class="bracket-round-matches">
+            {% for match in round.matches %}
+              {% include "championships/partials/bracket_match.html" %}
+            {% endfor %}
+            {% if round.code == "final" and champion %}
+              <div class="champion-card" aria-label="Champion">
+                <svg class="icon" aria-hidden="true"><use href="#i-trophy"></use></svg>
+                <span>Champion</span>
+                <strong>{{ champion.name }}</strong>
+              </div>
+            {% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ol>
+  </div>
+  {% if third_place %}
+    <div class="third-place mt-4">
+      <h3 class="label mb-3">Third-place match</h3>
+      {% with match=third_place %}{% include "championships/partials/bracket_match.html" %}{% endwith %}
+    </div>
+  {% endif %}
+  <p class="subtle mt-3">Swipe sideways to follow the path to the final. Teams appear once the group or match that feeds a slot is decided.</p>
+{% else %}
+  <div class="empty empty-sm">
+    <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-trophy"></use></svg></div>
+    <p>The bracket appears once fixtures are generated.</p>
+  </div>
+{% endif %}

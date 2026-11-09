@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block content %}
+<div class="container container-form">
+  <header class="page-head">
+    <a class="back-link" href="{% url 'championships:manage' championship.id %}#teams"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"></use></svg>{{ championship.name }}</a>
+    <p class="eyebrow">Teams</p>
+    <h1>{{ heading }}</h1>
+    <p class="lead">{{ championship.teams.count }} of {{ championship.team_count }} places filled.</p>
+  </header>
+
+  <div class="{% if bulk_form %}grid grid-2{% endif %}">
+    <form method="post" class="card form-card">
+      {% csrf_token %}
+      <input type="hidden" name="mode" value="single">
+      <h2 class="mb-3">{% if team %}Team details{% else %}Add one team{% endif %}</h2>
+      {{ form.non_field_errors }}
+      <div class="stack">
+        {% for field in form.visible_fields %}{% include "partials/field.html" %}{% endfor %}
+      </div>
+      <div class="form-actions">
+        <a class="btn btn-ghost" href="{% url 'championships:manage' championship.id %}#teams">Cancel</a>
+        <button class="btn btn-primary" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>Save team</button>
+      </div>
+    </form>
+
+    {% if bulk_form %}
+      <form method="post" class="card form-card">
+        {% csrf_token %}
+        <input type="hidden" name="mode" value="bulk">
+        <h2 class="mb-3">Add several teams</h2>
+        {{ bulk_form.non_field_errors }}
+        {% include "partials/field.html" with field=bulk_form.names %}
+        <p class="help">Seeds and groups can be set afterwards. Teams without a group are placed automatically.</p>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>Register teams</button>
+        </div>
+      </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

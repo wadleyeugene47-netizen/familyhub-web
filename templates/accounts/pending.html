@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Waiting for approval{% endblock %}
+
+{% block content %}
+<div class="container container-form">
+  <div class="empty">
+    {% if request.user.approval_status == "rejected" %}
+      <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-alert"></use></svg></div>
+      <h1>Your request was not accepted</h1>
+      <p>The owner of {{ site.site_name }} declined this account.{% if site.support_email %} If you think this is a mistake, write to <a href="mailto:{{ site.support_email }}">{{ site.support_email }}</a>.{% endif %}</p>
+    {% else %}
+      <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-users"></use></svg></div>
+      <h1>Thanks for signing up, {{ request.user.get_short_name|default:request.user.username }}!</h1>
+      <p>The owner of {{ site.site_name }} has been told about your request. You'll get an email at {{ request.user.email }} once you're accepted.</p>
+      <p><a class="btn btn-primary" href="{% url 'messaging:chat' %}"><svg class="icon" aria-hidden="true"><use href="#i-chat"></use></svg>Message the host</a></p>
+    {% endif %}
+    <form method="post" action="{% url 'accounts:logout' %}">
+      {% csrf_token %}
+      <button class="btn btn-glass" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-logout"></use></svg>Log out</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

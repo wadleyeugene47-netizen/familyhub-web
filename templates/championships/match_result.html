@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}{% if match.is_completed %}Correct result{% else %}Enter result{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container container-form">
+  <header class="page-head">
+    <a class="back-link" href="{% url 'championships:manage' championship.id %}#match-{{ match.id }}"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"></use></svg>{{ championship.name }}</a>
+    <p class="eyebrow">{{ match.stage_label }}</p>
+    <h1>{% if match.is_completed %}Correct result{% else %}Enter result{% endif %}</h1>
+    <p class="lead">{{ match.home_label }} vs {{ match.away_label }}</p>
+  </header>
+
+  {% if not match.teams_known %}
+    <div class="callout callout-warning"><svg class="icon" aria-hidden="true"><use href="#i-alert"></use></svg><span>Both teams must be known before a score can be entered. This slot fills in automatically once the earlier results are in.</span></div>
+  {% else %}
+
+  {% if conflict or clear_conflict %}
+    <div class="callout callout-error mb-3" role="alert">
+      <svg class="icon" aria-hidden="true"><use href="#i-alert"></use></svg>
+      <div>
+        <strong>This change affects knockout matches that already have results.</strong>
+        <p class="mt-2">Saving will change who plays in:</p>
+        <ul>{% for item in conflict|default:clear_conflict %}<li>{{ item.stage_label }}: {{ item.home_label }} vs {{ item.away_label }} ({{ item.home_score }}–{{ item.away_score }})</li>{% endfor %}</ul>
+        <p class="mt-2">Those results will be cleared and must be entered again. Nothing has been saved yet.</p>
+      </div>
+    </div>
+  {% endif %}
+
+  <form method="post" class="card form-card" novalidate>
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="form-section">
+      <div class="form-section-head">
+        <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-whistle"></use></svg></span>
+        <div><h2>Final score</h2><p>{% if match.is_knockout %}Include extra-time goals. Penalty shoot-out goals go in the penalty fields.{% else %}Enter the full-time score. Draws are allowed.{% endif %}</p></div>
+      </div>
+      <div class="score-grid">
+        {% include "partials/field.html" with field=form.home_score %}
+        <span class="vs" aria-hidden="true">–</span>
+        {% include "partials/field.html" with field=form.away_score %}
+      </div>
+    </div>
+
+    {% if match.is_knockout %}
+      <div class="form-section">
+        <div class="form-section-head">
+          <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-trophy"></use></svg></span>
+          <div><h2>If the score is level</h2><p>Rule for this championship: {{ championship.get_knockout_tie_rule_display }}. The winner is never guessed from the score.</p></div>
+        </div>
+        {% if championship.knockout_tie_rule == "organizer" %}
+          {% include "partials/field.html" with field=form.winner_side %}
+        {% else %}
+          {% if championship.knockout_tie_rule == "extra_time_penalties" %}
+            <label class="check-field">{{ form.extra_time }} <span>{{ form.extra_time.label }}</span></label>
+          {% endif %}
+          <div class="form-grid mt-4">
+            {% include "partials/field.html" with field=form.home_penalties %}
+            {% include "partials/field.html" with field=form.away_penalties %}
+          </div>
+          <p class="help mt-2">Leave the penalty fields empty unless a shoot-out was needed.</p>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <details class="form-section incident-section"{% if formset.initial_form_count %} open{% endif %}>
+      <summary>
+        <span class="icon-wrap" aria-hidden="true"><svg class="icon"><use href="#i-sports"></use></svg></span>
+        <span><strong>Goal and card details</strong><span class="subtle"> — optional</span></span>
+      </summary>
+      <p class="subtle mt-3">The score above is all that is needed. For own goals, choose the team that was credited with the goal. Rows without a player or minute are ignored.</p>
+      {{ formset.management_form }}
+      {{ formset.non_form_errors }}
+      <div class="incident-rows">
+        {% for incident_form in formset %}
+          <fieldset class="incident-row">
+            <legend class="sr-only">Detail {{ forloop.counter }}</legend>
+            {% include "partials/field.html" with field=incident_form.side %}
+            {% include "partials/field.html" with field=incident_form.kind %}
+            {% include "partials/field.html" with field=incident_form.player_name %}
+            {% include "partials/field.html" with field=incident_form.minute %}
+            {% include "partials/field.html" with field=incident_form.assist_name %}
+            {% if incident_form.initial %}<label class="check-field incident-delete">{{ incident_form.DELETE }} <span>Remove</span></label>{% endif %}
+          </fieldset>
+        {% endfor %}
+      </div>
+      <p class="help">Need more rows? Save, then open the result again for three more.</p>
+    </details>
+
+    {% if match.is_completed or conflict %}
+      <div class="form-section">
+        {% include "partials/field.html" with field=form.note %}
+      </div>
+    {% endif %}
+
+    {% if conflict %}
+      <label class="check-field confirm-field">
+        <input type="checkbox" name="confirm_reset" required>
+        <span>I understand that the knockout results listed above will be cleared.</span>
+      </label>
+    {% endif %}
+
+    <div class="form-actions">
+      <a class="btn btn-ghost" href="{% url 'championships:manage' championship.id %}#match-{{ match.id }}">Cancel</a>
+      <button class="btn btn-primary btn-lg" type="submit">
+        <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+        {% if conflict %}Confirm and save{% else %}Save result{% endif %}
+      </button>
+    </div>
+  </form>
+
+  {% if match.is_completed %}
+    <form method="post" action="{% url 'championships:match_clear' championship.id match.id %}" class="card card-sm mt-5 danger-zone" data-confirm="Clear this result? Standings and bracket will be recalculated.">
+      {% csrf_token %}
+      <div>
+        <h2 class="label">Clear this result</h2>
+        <p class="subtle">Use this if the match did not actually finish. It returns to scheduled.</p>
+        {% if clear_conflict %}
+          <label class="check-field mt-3"><input type="checkbox" name="confirm_reset" required> <span>Also clear the affected knockout results listed above.</span></label>
+        {% endif %}
+      </div>
+      <button class="btn btn-danger" type="submit">Clear result</button>
+    </form>
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

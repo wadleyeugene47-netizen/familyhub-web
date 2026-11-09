@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}{{ community.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header class="page-head" data-reveal>
+    <div class="page-head-row">
+      <div>
+        <a class="back-link" href="{% url 'communities:list' %}"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"></use></svg>All communities</a>
+        <p class="eyebrow">Community</p>
+        <h1>{{ community.name }}</h1>
+        {% if community.tagline %}<p class="lead">{{ community.tagline }}</p>{% endif %}
+        <p class="muted">Organized by {{ community.organizer.display_name }}</p>
+      </div>
+      {% if can_manage %}
+        <a class="btn btn-primary" href="{% url 'communities:manage' community.slug %}"><svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg>Organizer dashboard</a>
+      {% endif %}
+    </div>
+  </header>
+
+  <div class="dash-layout">
+    {% if community.description %}
+      <section class="card" aria-labelledby="about">
+        <div class="card-title"><h2 id="about">About</h2></div>
+        <p>{{ community.description|linebreaksbr }}</p>
+      </section>
+    {% endif %}
+
+    <section class="card" aria-labelledby="leagues">
+      <div class="card-title"><h2 id="leagues">Leagues</h2></div>
+      <ul class="owner-list">
+        {% for league in leagues %}
+          <li class="owner-row">
+            <div><strong>{{ league.name }}</strong> <span class="badge status-{{ league.status }}">{{ league.get_status_display }}</span></div>
+            <a class="btn btn-ghost btn-sm" href="{% url 'leagues:detail' league.pk %}">Standings<svg class="icon icon-arrow" aria-hidden="true"><use href="#i-arrow"></use></svg></a>
+          </li>
+        {% empty %}
+          <li class="muted">No leagues right now.</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="card" aria-labelledby="tournaments">
+      <div class="card-title"><h2 id="tournaments">Tournaments</h2></div>
+      <ul class="owner-list">
+        {% for tournament in tournaments %}
+          <li class="owner-row">
+            <div><strong>{{ tournament.name }}</strong> <span class="badge status-{{ tournament.status }}">{{ tournament.get_status_display }}</span></div>
+            <a class="btn btn-ghost btn-sm" href="{% url 'championships:detail' tournament.pk %}">View<svg class="icon icon-arrow" aria-hidden="true"><use href="#i-arrow"></use></svg></a>
+          </li>
+        {% empty %}
+          <li class="muted">No tournaments right now.</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="card" aria-labelledby="all-star">
+      <div class="card-title"><h2 id="all-star">All-Star games</h2></div>
+      <ul class="owner-list">
+        {% for game in all_star_games %}
+          <li class="owner-row">
+            <div><strong>{{ game.title }}</strong> <span class="badge status-{{ game.badge_status }}">{{ game.get_status_display }}</span></div>
+            <a class="btn btn-ghost btn-sm" href="{% url 'allstars:detail' game.pk %}">{% if game.status == "open" %}Sign up{% else %}View{% endif %}<svg class="icon icon-arrow" aria-hidden="true"><use href="#i-arrow"></use></svg></a>
+          </li>
+        {% empty %}
+          <li class="muted">No All-Star games right now.</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="card" aria-labelledby="events">
+      <div class="card-title"><h2 id="events">Upcoming events</h2></div>
+      <ul class="owner-list">
+        {% for event in events %}
+          <li class="owner-row">
+            <div>
+              <strong>{{ event.title }}</strong>
+              <p class="muted">{{ event.starts_at|date:"D, j M Y H:i" }} ({{ event.timezone }}) · {{ event.location.city }}</p>
+            </div>
+            <a class="btn btn-ghost btn-sm" href="{% url 'events:detail' event.pk %}">Details<svg class="icon icon-arrow" aria-hidden="true"><use href="#i-arrow"></use></svg></a>
+          </li>
+        {% empty %}
+          <li class="muted">No upcoming events.</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+</div>
+{% endblock %}

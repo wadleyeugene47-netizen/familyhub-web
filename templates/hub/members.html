@@ -1,0 +1,54 @@
+{% extends "hub/panel_base.html" %}
+
+{% block title %}Members{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header class="page-head">
+    <div class="page-head-row">
+      <div>
+        <p class="eyebrow">Host panel</p>
+        <h1>Members</h1>
+        <p class="lead">People who sign up wait here until you accept them.</p>
+      </div>
+      <a class="btn btn-glass" href="{% url 'hub:phones' %}">
+        <svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>
+        Add people by phone number
+      </a>
+    </div>
+  </header>
+
+  <section class="card" aria-labelledby="pending-title">
+    <div class="card-title"><h2 id="pending-title">Waiting for approval</h2></div>
+    <ul class="owner-list">
+      {% for member in pending_members %}
+        {% include "hub/partials/member_row.html" with accept=True decline=True %}
+      {% empty %}
+        <li class="muted">Nobody is waiting. You're all caught up.</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="card mt-6" aria-labelledby="approved-title">
+    <div class="card-title"><h2 id="approved-title">Members</h2></div>
+    <ul class="owner-list">
+      {% for member in approved_members %}
+        {% include "hub/partials/member_row.html" with decline=True decline_label="Remove" %}
+      {% empty %}
+        <li class="muted">No members yet.</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  {% if rejected_members %}
+    <section class="card mt-6" aria-labelledby="rejected-title">
+      <div class="card-title"><h2 id="rejected-title">Declined</h2></div>
+      <ul class="owner-list">
+        {% for member in rejected_members %}
+          {% include "hub/partials/member_row.html" with accept=True %}
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}

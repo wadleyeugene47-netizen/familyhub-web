@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Captain dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header class="page-head">
+    <p class="eyebrow">Captain dashboard</p>
+    <h1>Your team{{ teams|length|pluralize }}</h1>
+    <p class="lead">Your squad, your next games and where you stand.</p>
+  </header>
+
+  {% for team in teams %}
+    <section class="card mt-6" aria-labelledby="team-{{ team.pk }}" data-reveal>
+      <div class="card-title">
+        <h2 id="team-{{ team.pk }}">{{ team.name }}</h2>
+        <a href="{% url 'leagues:detail' team.league_id %}">{{ team.league.name }}</a>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat"><strong>{{ team.position }} of {{ team.league_size }}</strong><span>in the table</span></div>
+        <div class="stat stat-cyan"><strong>{{ team.row.points }}</strong><span>point{{ team.row.points|pluralize }}</span></div>
+        <div class="stat stat-success"><strong>{{ team.row.won }}-{{ team.row.drawn }}-{{ team.row.lost }}</strong><span>won, drawn, lost</span></div>
+        <div class="stat stat-warning">
+          {% if team.captain_fee %}
+            <strong>{{ team.captain_fee }} {{ team.fee_currency }}</strong>
+            <span>{% if team.fee_paid %}team fee paid{% else %}team fee not paid yet{% endif %}</span>
+          {% else %}
+            <strong>None</strong><span>team fee</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="dash-layout mt-6">
+        <div>
+          <h3>Squad</h3>
+          <form method="post" action="{% url 'leagues:captain_roster' team.pk %}" id="roster-{{ team.pk }}">{% csrf_token %}</form>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th scope="col">Player</th><th scope="col">Role</th><th scope="col">Shirt number</th>{% if team.can_edit_roster %}<th scope="col"><span class="sr-only">Remove</span></th>{% endif %}</tr></thead>
+              <tbody>
+                {% for member in team.roster %}
+                  <tr>
+                    <th scope="row">{{ member.user.get_full_name|default:member.user.username }}</th>
+                    <td>{{ member.get_role_display }}</td>
+                    <td>
+                      {% if team.can_edit_roster %}
+                        <label class="sr-only" for="jersey-{{ member.pk }}">Shirt number for {{ member.user.username }}</label>
+                        <input id="jersey-{{ member.pk }}" type="number" name="jersey_{{ member.pk }}" form="roster-{{ team.pk }}" min="0" max="99" value="{{ member.jersey_number|default_if_none:'' }}">
+                      {% else %}
+                        {{ member.jersey_number|default_if_none:"-" }}
+                      {% endif %}
+                    </td>
+                    {% if team.can_edit_roster %}
+                      <td>
+                        {% if member.role != "captain" %}
+                          <form method="post" action="{% url 'leagues:captain_player_remove' team.pk member.pk %}" data-confirm="Take {{ member.user.username }} off your team?">
+                            {% csrf_token %}
+                            <button class="btn btn-ghost btn-sm" type="submit">Remove</button>
+                          </form>
+                        {% endif %}
+                      </td>
+                    {% endif %}
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% if team.can_edit_roster %}
+            <div class="form-actions"><button class="btn btn-primary btn-sm" type="submit" form="roster-{{ team.pk }}">Save shirt numbers</button></div>
+
+            {% if team.join_requests %}
+              <h3 class="mt-4">Asked to play</h3>
+              <ul class="owner-list">
+                {% for join_request in team.join_requests %}
+                  <li class="owner-row">
+                    <div>
+                      <strong>{{ join_request.user.get_full_name|default:join_request.user.username }}</strong>
+                      {% if join_request.note %}<p class="muted">{{ join_request.note }}</p>{% endif %}
+                    </div>
+                    <form method="post" action="{% url 'leagues:captain_player_add' team.pk %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="{{ team.add_form.user.html_name }}" value="{{ join_request.user_id }}">
+                      <button class="btn btn-primary btn-sm" type="submit">Add to my team</button>
+                    </form>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+
+            <form method="post" action="{% url 'leagues:captain_player_add' team.pk %}" class="form-card mt-4">
+              {% csrf_token %}
+              <h3>Add a player</h3>
+              <div class="form-grid">
+                {% include "partials/field.html" with field=team.add_form.user %}
+                {% include "partials/field.html" with field=team.add_form.jersey_number %}
+              </div>
+              <div class="form-actions"><button class="btn btn-primary btn-sm" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>Add player</button></div>
+            </form>
+
+            <form method="post" action="{% url 'leagues:captain_team_edit' team.pk %}" class="form-card mt-4">
+              {% csrf_token %}
+              <h3>Team details</h3>
+              <div class="form-grid">
+                {% include "partials/field.html" with field=team.edit_form.name %}
+                {% include "partials/field.html" with field=team.edit_form.short_name %}
+              </div>
+              <div class="form-actions"><button class="btn btn-primary btn-sm" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>Save team details</button></div>
+            </form>
+          {% endif %}
+        </div>
+
+        <div>
+          <h3>Next games</h3>
+          <ul class="owner-list">
+            {% for match in team.upcoming %}
+              <li class="owner-row">
+                <div>
+                  <strong>{{ match.home_team.name }} vs {{ match.away_team.name }}</strong>
+                  <p class="muted">{{ match.event.starts_at|date:"D, j M Y H:i" }} ({{ match.event.timezone }}) · {{ match.event.location }}</p>
+                </div>
+              </li>
+            {% empty %}
+              <li class="muted">No games scheduled yet.</li>
+            {% endfor %}
+          </ul>
+
+          <h3 class="mt-4">Recent results</h3>
+          <ul class="owner-list">
+            {% for match in team.results %}
+              <li class="owner-row">
+                <div>
+                  <strong>{{ match.home_team.name }} {{ match.home_score }} - {{ match.away_score }} {{ match.away_team.name }}</strong>
+                  <p class="muted">{{ match.event.starts_at|date:"j M Y" }}</p>
+                </div>
+              </li>
+            {% empty %}
+              <li class="muted">No results yet.</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </section>
+  {% empty %}
+    <div class="empty">
+      <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-whistle"></use></svg></div>
+      <h2>You aren't a team captain yet.</h2>
+      <p>When the host makes you captain of a team, it will show up here.</p>
+      <a class="btn btn-primary" href="{% url 'accounts:dashboard' %}">Back to my dashboard</a>
+    </div>
+  {% endfor %}
+</div>
+<script>
+  document.querySelectorAll("form[data-confirm]").forEach(function (form) {
+    form.addEventListener("submit", function (event) {
+      if (!window.confirm(form.dataset.confirm)) event.preventDefault();
+    });
+  });
+</script>
+{% endblock %}
